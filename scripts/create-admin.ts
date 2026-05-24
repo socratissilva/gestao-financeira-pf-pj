@@ -1,17 +1,30 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config({ path: ".env.local" });
+// Garante a leitura do .env na raiz do projeto
+const envPath = path.resolve(process.cwd(), ".env");
+dotenv.config({ path: envPath });
 
 const MONGODB_URI = process.env.MONGODB_URI!;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 async function createAdmin() {
   try {
+    // Logs de depuração
+    console.log("URL do Banco encontrada?", !!MONGODB_URI);
+    console.log("Senha do Admin encontrada?", !!ADMIN_PASSWORD);
+
+    if (!ADMIN_PASSWORD || !MONGODB_URI) {
+      console.error("Erro: Variáveis de ambiente não foram carregadas corretamente.");
+      process.exit(1);
+    }
+
     await mongoose.connect(MONGODB_URI);
+    console.log("MongoDB conectado com sucesso!");
 
-    console.log("MongoDB conectado");
-
+    // Definição do Schema local para o script
     const UserSchema = new mongoose.Schema({
       nome: String,
       email: String,
@@ -19,20 +32,23 @@ async function createAdmin() {
       ativo: Boolean,
     });
 
-    const User =
-      mongoose.models.User || mongoose.model("User", UserSchema);
+    // Reaproveita o modelo se ele já existir, caso contrário cria um novo
+    const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
-    const hashedPassword = await bcrypt.hash("123456", 10);
+    // Criptografa a senha vinda do .env
+    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
 
+    // Verifica se o admin@email.com já existe na base
     const existingUser = await User.findOne({
       email: "admin@email.com",
     });
 
     if (existingUser) {
-      console.log("Usuário admin já existe");
-      process.exit();
+      console.log("Usuário admin já existe no banco de dados.");
+      process.exit(0);
     }
 
+    // Cria o usuário com a nova senha criptografada
     await User.create({
       nome: "Administrador",
       email: "admin@email.com",
@@ -40,13 +56,14 @@ async function createAdmin() {
       ativo: true,
     });
 
-    console.log("Admin criado com sucesso");
-    process.exit();
+    console.log("Admin criado com sucesso!");
+    process.exit(0);
 
   } catch (error) {
-    console.error(error);
+    console.error("Erro ao rodar o script de admin:", error);
     process.exit(1);
   }
 }
 
+// Executa a função
 createAdmin();
