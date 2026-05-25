@@ -1,0 +1,102 @@
+.aside {
+  width: 80px;
+  background-color: #1e293b;
+  height: 100vh;
+  flex-shrink: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 0.5rem;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  
+  /* --- AS DUAS LINHAS MÁGICAS --- */
+  position: sticky;
+  top: 0;
+}
+
+.expanded {
+  width: 240px; 
+}
+
+.logoContainer {
+  margin-bottom: 2.5rem;
+  display: flex;
+  justify-content: center;  
+}
+
+.logo {
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+/* Agrupando as navegações */
+.navTop, .navBottom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.navBottom {
+  margin-top: auto;
+  border-top: 1px solid #334155;
+  padding-top: 0.75rem;
+}
+
+.navLink, .logoutButton {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.8rem;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.2s; 
+  color: #cbd5e1;
+  background: none;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* Efeito de destaque ao passar o mouse na linha toda */
+.navLink:hover, .logoutButton:hover {
+  background-color: #334155;
+}
+
+.navLinkActive {
+  background-color: #2d3f55;
+}
+
+.linkText {
+  font-size: 0.95rem;
+  font-weight: 500;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.icon {
+  flex-shrink: 0; 
+}
+
+.groupSeparator {
+  height: 1px;
+  background-color: #334155;
+  margin: 0.4rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.groupLabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #475569;
+  padding: 0.25rem 0.8rem 0.1rem;
+  white-space: nowrap;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-5px); }
+  to { opacity: 1; transform: translateX(0); }
+}

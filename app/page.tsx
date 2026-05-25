@@ -7,9 +7,10 @@ import Image from "next/image";
 export default function LoginPage() {
   const router = useRouter();
 
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false); 
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,23 +42,23 @@ export default function LoginPage() {
   return (
     <div style={styles.container}>
       <form onSubmit={handleSubmit} style={styles.form}>
-        
+
         {/* Bloco Superior da Logo */}
         <div style={styles.logoContainer}>
           <div style={styles.logoWrapper}>
-            <Image 
-              src="/img/logo.PNG" 
-              alt="Logo Sócratis" 
-              width={280} 
-              height={140}  
+            <Image
+              src="/img/logoPadrao.PNG"
+              alt="Logo Sócratis"
+              width={280}
+              height={140}
               style={{ objectFit: 'contain', height: 'auto' }}
-              priority 
+              priority
             />
           </div>
         </div>
 
         {error && <p style={styles.errorMessage}>{error}</p>}
-        
+
         {/* Input de Email */}
         <div style={styles.inputGroup}>
           <label style={styles.inputLabel}>EMAIL</label>
@@ -70,18 +71,33 @@ export default function LoginPage() {
             style={styles.input}
           />
         </div>
-        
-        {/* Input de Senha */}
-        <div style={styles.inputGroup}>
+
+        {/* Input de Senha com Ícone */}
+        <div style={{ ...styles.inputGroup, position: 'relative' }}>
           <label style={styles.inputLabel}>SENHA</label>
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="........"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={styles.input}
+            style={{ ...styles.input, paddingRight: '40px' }} // Espaço para o ícone
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '32px', // Ajuste conforme a altura da sua label
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '18px'
+            }}
+          >
+            {showPassword ? "👁️" : "👁️‍🗨️"}
+          </button>
         </div>
 
         {/* Checkbox */}
@@ -94,7 +110,7 @@ export default function LoginPage() {
           />
           Manter-me conectado
         </label>
-        
+
         {/* Botão Principal */}
         <button type="submit" style={styles.button}>
           Acessar Sistema
@@ -109,7 +125,7 @@ export default function LoginPage() {
 
         {/* Slogan de Rodapé */}
         <div style={styles.footerSlogan}>
-          CONTROLE, PLANEJE, CRESÇA.
+          FINANÇAS PESSOAIS, EMPRESARIAIS E INVESTIMENTOS.
         </div>
       </form>
     </div>
@@ -123,16 +139,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'center',
     alignItems: 'center',
     height: '100vh',
-    backgroundColor: '#e1e5e2', 
+    backgroundColor: '#e1e5e2',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    width: '410px', 
+    width: '410px',
     padding: '2.5rem 2rem',
     backgroundColor: '#f4f4ee', // Fundo off-white do modelo
     borderRadius: '16px',
-    boxShadow: '0 15px 35px rgba(0, 0, 0, 0.05)', 
+    boxShadow: '0 15px 35px rgba(0, 0, 0, 0.05)',
     gap: '16px',
     border: '1px solid #e3e3db',
   },
@@ -144,7 +160,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   logoWrapper: {
     display: 'inline-block',
     lineHeight: 0,
-    backgroundColor: 'transparent', 
+    backgroundColor: 'transparent',
   },
   errorMessage: {
     color: '#dc2626',
@@ -160,7 +176,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   inputLabel: {
     fontSize: '11px',
     fontWeight: '600',
-    color: '#2d4a3e', 
+    color: '#2d4a3e',
     paddingLeft: '4px',
     letterSpacing: '0.5px',
   },
@@ -185,7 +201,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   checkbox: {
     cursor: 'pointer',
-    accentColor: '#2d4a3e', 
+    accentColor: '#2d4a3e',
   },
   button: {
     padding: '14px',
@@ -196,7 +212,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
     fontWeight: '700',
     fontSize: '14px',
-    textTransform: 'uppercase', 
+    textTransform: 'uppercase',
     letterSpacing: '1px',
     boxShadow: '0 4px 10px rgba(27, 50, 39, 0.2)',
   },
@@ -207,17 +223,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   forgotPasswordLink: {
     fontSize: '12px',
-    color: '#b5945b', 
+    color: '#b5945b',
     textDecoration: 'none',
     fontWeight: '600',
-    textTransform: 'uppercase', 
+    textTransform: 'uppercase',
     letterSpacing: '0.5px',
   },
   footerSlogan: {
     textAlign: 'center',
     fontSize: '12px',
     fontWeight: '700',
-    color: '#2d4a3e', 
+    color: '#2d4a3e',
     letterSpacing: '1.5px',
     marginTop: '15px',
     borderTop: '1px solid #e3e3db',
