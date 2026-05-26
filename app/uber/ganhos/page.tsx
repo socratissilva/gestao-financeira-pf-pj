@@ -76,27 +76,73 @@ export default function GanhosUber() {
         }
     }
 
-    const totalGanhos = ganhos.reduce(
-        (acc, g) => acc + Number(g.valorBruto || 0),
-        0
-    );
+    /* =========================================================
+       FILTROS
+    ========================================================= */
 
-    const totalHoras = ganhos.reduce(
+    const ganhosFiltrados = ganhos.filter((ganho) => {
+        const data = new Date(ganho.data);
+
+        if (filterType === "month") {
+            const [mes, ano] =
+                selectedMonth.split("-");
+
+            return (
+                data.getUTCMonth() + 1 ===
+                    Number(mes) &&
+                data.getUTCFullYear() ===
+                    Number(ano)
+            );
+        }
+
+        if (filterType === "year") {
+            return (
+                data.getUTCFullYear() ===
+                Number(selectedYear)
+            );
+        }
+
+        if (filterType === "day") {
+            const inicio = new Date(startDate);
+            const fim = new Date(endDate);
+
+            inicio.setHours(0, 0, 0, 0);
+            fim.setHours(23, 59, 59, 999);
+
+            return data >= inicio && data <= fim;
+        }
+
+        return true;
+    });
+
+    /* =========================================================
+       CÁLCULOS
+    ========================================================= */
+
+    const totalGanhos = ganhosFiltrados.reduce(
         (acc, g) =>
-            acc + Number(g.horasTrabalhadas || 0),
+            acc + Number(g.valorBruto || 0),
         0
     );
 
-    const totalKm = ganhos.reduce(
+    const totalHoras = ganhosFiltrados.reduce(
+        (acc, g) =>
+            acc +
+            Number(g.horasTrabalhadas || 0),
+        0
+    );
+
+    const totalKm = ganhosFiltrados.reduce(
         (acc, g) =>
             acc + Number(g.kmRodados || 0),
         0
     );
 
-    const mediaPorDia = ganhos.length
-        ? (totalGanhos / ganhos.length).toFixed(
-              2
-          )
+    const mediaPorDia = ganhosFiltrados.length
+        ? (
+              totalGanhos /
+              ganhosFiltrados.length
+          ).toFixed(2)
         : "0.00";
 
     const mediaPorHora = totalHoras
@@ -114,8 +160,10 @@ export default function GanhosUber() {
     const cards = [
         {
             title: "Ganhos Totais",
-            value: `R$ ${totalGanhos.toFixed(2)}`,
-            subtitle: `${ganhos.length} registros cadastrados`,
+            value: `R$ ${totalGanhos.toFixed(
+                2
+            )}`,
+            subtitle: `${ganhosFiltrados.length} registros cadastrados`,
             icon: TrendingUp,
             iconBg: "bg-green-100",
             iconColor: "text-green-600",
@@ -147,7 +195,8 @@ export default function GanhosUber() {
         {
             title: "Produtividade",
             value: `${produtividadeKmHora} km/h`,
-            subtitle: "Média de deslocamento por hora",
+            subtitle:
+                "Média de deslocamento por hora",
             icon: TrendingUp,
             iconBg: "bg-cyan-100",
             iconColor: "text-cyan-600",
@@ -173,7 +222,9 @@ export default function GanhosUber() {
 
                 <button
                     onClick={() =>
-                        router.push("/uber/ganhos/novo")
+                        router.push(
+                            "/uber/ganhos/novo"
+                        )
                     }
                     className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700"
                 >
@@ -192,10 +243,13 @@ export default function GanhosUber() {
                                 name="filterType"
                                 value="month"
                                 checked={
-                                    filterType === "month"
+                                    filterType ===
+                                    "month"
                                 }
                                 onChange={() =>
-                                    setFilterType("month")
+                                    setFilterType(
+                                        "month"
+                                    )
                                 }
                                 className="h-4 w-4 cursor-pointer"
                             />
@@ -211,10 +265,13 @@ export default function GanhosUber() {
                                 name="filterType"
                                 value="year"
                                 checked={
-                                    filterType === "year"
+                                    filterType ===
+                                    "year"
                                 }
                                 onChange={() =>
-                                    setFilterType("year")
+                                    setFilterType(
+                                        "year"
+                                    )
                                 }
                                 className="h-4 w-4 cursor-pointer"
                             />
@@ -230,10 +287,13 @@ export default function GanhosUber() {
                                 name="filterType"
                                 value="day"
                                 checked={
-                                    filterType === "day"
+                                    filterType ===
+                                    "day"
                                 }
                                 onChange={() =>
-                                    setFilterType("day")
+                                    setFilterType(
+                                        "day"
+                                    )
                                 }
                                 className="h-4 w-4 cursor-pointer"
                             />
@@ -327,7 +387,6 @@ export default function GanhosUber() {
                 <>
                     {/* Cards */}
                     <div className="space-y-5">
-                        {/* Linha 1 */}
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                             {cards
                                 .slice(0, 3)
@@ -378,7 +437,6 @@ export default function GanhosUber() {
                                 })}
                         </div>
 
-                        {/* Linha 2 */}
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                             {cards
                                 .slice(3, 6)
@@ -477,8 +535,9 @@ export default function GanhosUber() {
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100">
-                                    {ganhos.length > 0 ? (
-                                        ganhos.map(
+                                    {ganhosFiltrados.length >
+                                    0 ? (
+                                        ganhosFiltrados.map(
                                             (ganho) => (
                                                 <tr
                                                     key={
@@ -538,7 +597,7 @@ export default function GanhosUber() {
                                                 colSpan={5}
                                                 className="px-6 py-14 text-center text-sm text-slate-500"
                                             >
-                                                Nenhum ganho cadastrado.
+                                                Nenhum ganho encontrado para este filtro.
                                             </td>
                                         </tr>
                                     )}
