@@ -3,11 +3,11 @@
 import PageHeader from "@/components/PageHeader/PageHeader";
 import { Wrench, Plus, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { formatDateBR } from "@/utils/formatDate";
 import {
   useRouter,
   useSearchParams
 } from "next/navigation";
-import { formatDateBR } from "@/utils/formatDate";
 
 interface Manutencao {
   _id: string;

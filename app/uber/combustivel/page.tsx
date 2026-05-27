@@ -3,9 +3,21 @@
 import PageHeader from "@/components/PageHeader/PageHeader";
 import { Fuel, Plus, TrendingDown } from "lucide-react";
 import { useState, useEffect } from "react";
+import { formatDateBR } from "@/utils/formatDate";
+
+interface Abastecimento {
+  id: string;
+  data: string;
+  litros: number;
+  valor: number;
+  km: number;
+  preco: number;
+  consumo: number;
+}
 
 export default function CombustivelUber() {
-  const [combustivel, setCombustivel] = useState([]);
+  const [combustivel, setCombustivel] =
+  useState<Abastecimento[]>([]);
 
   const [filterType, setFilterType] = useState<"day" | "month" | "year">("month");
   const [selectedMonth, setSelectedMonth] = useState("05-2026");
@@ -362,7 +374,7 @@ export default function CombustivelUber() {
             </thead>
             <tbody className="divide-y divide-slate-200">
               {combustivelFiltrado.map((abast) => {
-                const dataFormatada = new Date(abast.data).toLocaleDateString("pt-BR");
+                const dataFormatada = formatDateBR(abast.data);
                 return (
                   <tr key={abast.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 text-sm text-slate-900">{dataFormatada}</td>
