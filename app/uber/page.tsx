@@ -88,7 +88,7 @@ export default function UberOverview() {
             value: currentStats.manutencao,
             percentage: "6% da receita",
             icon: Wrench,
-            color: "bg-red-50",
+            color:"bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-500 shadow-lg",
             text: "text-red-600",
         },
     ];
@@ -183,6 +183,7 @@ export default function UberOverview() {
                     )}
                 </div>
             </div>
+            
 
             {/* Cards */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -264,9 +265,11 @@ export default function UberOverview() {
                         <YAxis />
 
                         <Tooltip
-                            formatter={(value: number) =>
-                                `R$ ${value.toLocaleString("pt-BR")}`
-                            }
+                            formatter={(value) => [
+                                `R$ ${Number(value).toLocaleString("pt-BR", {
+                                    minimumFractionDigits: 2,
+                                })}`,
+                            ]}
                         />
 
                         <Legend />
@@ -309,9 +312,11 @@ export default function UberOverview() {
                         <YAxis />
 
                         <Tooltip
-                            formatter={(value: number) =>
-                                `R$ ${value.toLocaleString("pt-BR")}`
-                            }
+                            formatter={(value) => [
+                                `R$ ${Number(value).toLocaleString("pt-BR", {
+                                    minimumFractionDigits: 2,
+                                })}`,
+                            ]}
                         />
 
                         <Line

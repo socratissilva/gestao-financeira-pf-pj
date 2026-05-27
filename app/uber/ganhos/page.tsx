@@ -216,7 +216,7 @@ export default function GanhosUber() {
             {/* Header */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <PageHeader
-                    title="Ganhos Uber"
+                    title="Ganhos Uber"                    
                     description="Acompanhe seus ganhos e desempenho operacional"
                 />
 
@@ -390,16 +390,22 @@ export default function GanhosUber() {
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                             {cards
                                 .slice(0, 3)
-                                .map((card) => {
+                                .map((card, idx) => {
                                     const Icon =
                                         card.icon;
+                                    
+                                    const isHighlighted = card.title === "Ganhos Totais";
 
                                     return (
                                         <div
                                             key={
                                                 card.title
                                             }
-                                            className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+                                            className={`group rounded-2xl p-6 transition-all duration-200 ${
+                                                isHighlighted
+                                                    ? "border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg hover:-translate-y-2 hover:shadow-2xl"
+                                                    : "border border-slate-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg"
+                                            }`}
                                         >
                                             <div className="mb-5 flex items-start justify-between">
                                                 <div className="space-y-1">

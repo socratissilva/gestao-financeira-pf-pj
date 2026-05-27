@@ -82,7 +82,7 @@ const NAV: NavEntry[] = [
       { label: "Visão Geral", href: "/uber", icon: Car },
       { label: "Ganhos", href: "/uber/ganhos", icon: TrendingUp },
       { label: "Combustível", href: "/uber/combustivel", icon: Fuel },
-      { label: "Manutenção", href: "/uber/manutencao", icon: Wrench },
+      { label: "Manutenção", href: "/uber/manutencao?openKmModal=true", icon: Wrench },
       { label: "Relatórios", href: "/relatorios", icon: ClipboardList },
     ],
   },

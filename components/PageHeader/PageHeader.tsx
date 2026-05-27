@@ -4,7 +4,8 @@ interface PageHeaderProps {
     title: string;
     subtitle?: string;       //
     buttonLabel?: string;    
-    buttonHref?: string;     
+    buttonHref?: string;  
+    description?: string;   
 }   
 
 export default function PageHeader({ title, subtitle, buttonLabel, buttonHref }: PageHeaderProps) {
