@@ -101,9 +101,9 @@ const NAV: NavEntry[] = [
   },
 
   {
-    group: "Cadastros",
+    group: "Cadastro",
     children: [
-      { label: "Clientes", href: "/clientes", icon: Users },
+      // { label: "Clientes", href: "/clientes", icon: Users },
       { label: "Usuários", href: "/usuarios", icon: UserPen },
     ],
   },
@@ -129,7 +129,8 @@ function getActiveGroups(pathname: string): Set<string> {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function Sidebar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
   const pathname = usePathname();
 
   const [isHovered, setIsHovered] = useState(false);
@@ -145,18 +146,20 @@ export default function Sidebar() {
 
   useEffect(() => { setMounted(true); }, []);
 
-  const userName = session?.user?.name ?? "";
-  const userEmail = session?.user?.email ?? "";
+  const userName = session?.user?.name || "";
+  const userEmail = session?.user?.email || "";
 
   // ── Grupos colapsáveis ────────────────────────────────────────────────────
 
   const [manualOpen, setManualOpen] = useState<Set<string>>(new Set());
-  const [prevPathname, setPrevPathname] = useState(pathname);
 
-  if (pathname !== prevPathname) {
-    setPrevPathname(pathname);
+  useEffect(() => {
     setManualOpen(new Set());
-  }
+  }, [pathname]);
+
+  const isLoading = status === "loading";
+
+
 
   const openGroups = useMemo(() => {
     return new Set([...getActiveGroups(pathname), ...manualOpen]);
@@ -323,11 +326,23 @@ export default function Sidebar() {
           </>
         ) : (
           <nav className="flex flex-col gap-0.5 p-2 flex-1 overflow-hidden">
-            {NAV.map((entry) =>
-              isGroup(entry)
-                ? <ExpandedGroup key={entry.group} entry={entry} />
-                : <ExpandedItem key={(entry as NavItem).href} item={entry as NavItem} />
-            )}
+            {NAV
+              .filter((entry) => {
+                if (
+                  isGroup(entry) &&
+                  entry.group === "Cadastro" &&
+                  !isAdmin
+                ) {
+                  return false;
+                }
+
+                return true;
+              })
+              .map((entry) =>
+                isGroup(entry)
+                  ? <ExpandedGroup key={entry.group} entry={entry} />
+                  : <ExpandedItem key={(entry as NavItem).href} item={entry as NavItem} />
+              )}
           </nav>
         )}
 

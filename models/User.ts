@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, models } from "mongoose";
 
-const UserSchema = new mongoose.Schema(
+const UserSchema = new Schema(
   {
     nome: {
       type: String,
@@ -18,7 +18,13 @@ const UserSchema = new mongoose.Schema(
       required: true,
     },
 
-    ativo: {
+    role: {
+      type: String,
+      enum: ["ADMIN", "PADRAO"],
+      default: "PADRAO",
+    },
+
+    isAtivo: {
       type: Boolean,
       default: true,
     },
@@ -28,8 +34,8 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-const User =
-  mongoose.models.User ||
-  mongoose.model("User", UserSchema);
+const User = models.User || mongoose.model("User", UserSchema);
 
 export default User;
+
+

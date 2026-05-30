@@ -19,6 +19,8 @@ export default function LoginPage() {
     setError("");
 
     try {
+      console.log({ email, password });
+
       const result = await signIn("credentials", {
         email,
         password,
@@ -34,7 +36,7 @@ export default function LoginPage() {
 
       console.log("INDO PARA DASHBOARD");
 
-      window.location.href = "/dashboard";
+      router.replace("/dashboard");
 
     } catch (error) {
       console.error(error);

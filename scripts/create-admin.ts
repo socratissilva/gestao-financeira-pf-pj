@@ -29,7 +29,8 @@ async function createAdmin() {
       nome: String,
       email: String,
       password: String,
-      ativo: Boolean,
+      isAtivo: Boolean,
+      role: String,
     });
 
     // Reaproveita o modelo se ele já existir, caso contrário cria um novo
@@ -44,14 +45,11 @@ async function createAdmin() {
     });
 
     if (existingUser) {
-
       existingUser.password = hashedPassword;
+      existingUser.role = "ADMIN";
+      existingUser.isAtivo = true;
 
       await existingUser.save();
-
-      console.log("Senha do admin atualizada!");
-
-      process.exit(0);
     }
 
     // Cria o usuário com a nova senha criptografada
@@ -59,7 +57,8 @@ async function createAdmin() {
       nome: "Administrador",
       email: "admin@email.com",
       password: hashedPassword,
-      ativo: true,
+      isAtivo: true,
+      role: "ADMIN",
     });
 
     console.log("Admin criado com sucesso!");
