@@ -41,8 +41,7 @@ const manutencaoSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["Concluída", "Pendente", "Agendada"],
-      default: "Concluída",
+      default: "Pendente",
     },
   },
   {

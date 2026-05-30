@@ -44,7 +44,13 @@ async function createAdmin() {
     });
 
     if (existingUser) {
-      console.log("Usuário admin já existe no banco de dados.");
+
+      existingUser.password = hashedPassword;
+
+      await existingUser.save();
+
+      console.log("Senha do admin atualizada!");
+
       process.exit(0);
     }
 

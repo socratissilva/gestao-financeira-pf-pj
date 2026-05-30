@@ -10,7 +10,10 @@ import {
     Plus,
     Filter,
     Wallet,
+    Edit,
+    Gauge,
 } from "lucide-react";
+import Link from "next/link";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -89,9 +92,9 @@ export default function GanhosUber() {
 
             return (
                 data.getUTCMonth() + 1 ===
-                    Number(mes) &&
+                Number(mes) &&
                 data.getUTCFullYear() ===
-                    Number(ano)
+                Number(ano)
             );
         }
 
@@ -140,9 +143,9 @@ export default function GanhosUber() {
 
     const mediaPorDia = ganhosFiltrados.length
         ? (
-              totalGanhos /
-              ganhosFiltrados.length
-          ).toFixed(2)
+            totalGanhos /
+            ganhosFiltrados.length
+        ).toFixed(2)
         : "0.00";
 
     const mediaPorHora = totalHoras
@@ -188,7 +191,7 @@ export default function GanhosUber() {
             title: "Ganho por KM",
             value: `R$ ${ganhoPorKm}`,
             subtitle: "Média por quilômetro",
-            icon: Wallet,
+            icon: Gauge,
             iconBg: "bg-emerald-100",
             iconColor: "text-emerald-600",
         },
@@ -216,7 +219,7 @@ export default function GanhosUber() {
             {/* Header */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <PageHeader
-                    title="Ganhos Uber"                    
+                    title="Ganhos Uber"
                     description="Acompanhe seus ganhos e desempenho operacional"
                 />
 
@@ -393,7 +396,7 @@ export default function GanhosUber() {
                                 .map((card, idx) => {
                                     const Icon =
                                         card.icon;
-                                    
+
                                     const isHighlighted = card.title === "Ganhos Totais";
 
                                     return (
@@ -401,11 +404,10 @@ export default function GanhosUber() {
                                             key={
                                                 card.title
                                             }
-                                            className={`group rounded-2xl p-6 transition-all duration-200 ${
-                                                isHighlighted
-                                                    ? "border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg hover:-translate-y-2 hover:shadow-2xl"
-                                                    : "border border-slate-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg"
-                                            }`}
+                                            className={`group rounded-2xl p-6 transition-all duration-200 ${isHighlighted
+                                                ? "border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg hover:-translate-y-2 hover:shadow-2xl"
+                                                : "border border-slate-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg"
+                                                }`}
                                         >
                                             <div className="mb-5 flex items-start justify-between">
                                                 <div className="space-y-1">
@@ -537,12 +539,16 @@ export default function GanhosUber() {
                                         <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                                             Ganho
                                         </th>
+
+                                        <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                            Ação
+                                        </th>
                                     </tr>
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100">
                                     {ganhosFiltrados.length >
-                                    0 ? (
+                                        0 ? (
                                         ganhosFiltrados.map(
                                             (ganho) => (
                                                 <tr
@@ -589,10 +595,20 @@ export default function GanhosUber() {
                                                         R${" "}
                                                         {Number(
                                                             ganho.valorBruto ||
-                                                                0
+                                                            0
                                                         ).toFixed(
                                                             2
                                                         )}
+                                                    </td>
+
+                                                    <td className="px-6 py-4 text-center">
+                                                        <Link
+                                                            href={`/uber/ganhos/${ganho._id}`}
+                                                            className="inline-flex items-center justify-center rounded-lg border border-slate-300 p-2 transition hover:bg-slate-100"
+                                                            title="Editar ganho"
+                                                        >
+                                                            <Edit className="h-4 w-4 text-slate-600" />
+                                                        </Link>
                                                     </td>
                                                 </tr>
                                             )
@@ -600,7 +616,7 @@ export default function GanhosUber() {
                                     ) : (
                                         <tr>
                                             <td
-                                                colSpan={5}
+                                                colSpan={6}
                                                 className="px-6 py-14 text-center text-sm text-slate-500"
                                             >
                                                 Nenhum ganho encontrado para este filtro.

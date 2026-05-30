@@ -288,7 +288,7 @@ export default function Sidebar() {
         <div className="flex items-center justify-center border-b border-slate-700 h-16 shrink-0 px-3">
           <Link href="/dashboard" title="Início">
             <Image
-              src="/img/icone_V01.jpeg"
+              src="/img/logoPadrao.png"
               alt="Logo"
               width={36}
               height={36}
@@ -334,7 +334,11 @@ export default function Sidebar() {
         {/* Botão Sair + Avatar — sempre na base */}
         <div className="border-t border-slate-700 p-2 shrink-0 flex flex-col gap-1">
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() =>
+              signOut({
+                callbackUrl: "/",
+              })
+            }
             title="Sair"
             className={`flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-slate-400
               hover:text-slate-100 hover:bg-slate-700 transition-colors w-full

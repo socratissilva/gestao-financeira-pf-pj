@@ -3,42 +3,51 @@ import { connectDB } from "@/lib/mongodb";
 import ManutencaoUber from "@/models/manutencaoUber";
 import mongoose from "mongoose";
 
+/* =======================================================
+   REGRAS
+======================================================= */
+
+const REGRAS_MANUTENCAO: Record<
+  string,
+  { meses: number; km: number }
+> = {
+  "Troca de óleo": { meses: 6, km: 10000 },
+  "Troca de pneus": { meses: 12, km: 40000 },
+  "Alinhamento e balanceamento": { meses: 6, km: 10000 },
+  Freios: { meses: 8, km: 20000 },
+  Suspensão: { meses: 12, km: 30000 },
+  "Ar-condicionado": { meses: 12, km: 15000 },
+  Bateria: { meses: 24, km: 0 },
+  Filtros: { meses: 6, km: 10000 },
+  "Revisão geral": { meses: 12, km: 10000 },
+  Outros: { meses: 6, km: 10000 },
+};
+
+/* =======================================================
+   GET BY ID
+======================================================= */
+
 export async function GET(
   req: Request,
-  context: {
-    params: Promise<{ id: string }>;
-  }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const { id } =
-      await context.params;
+    const { id } = await context.params;
 
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        id
-      )
-    ) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "ID inválido",
-        },
+        { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const manutencao =
-      await ManutencaoUber.findById(id);
+    const manutencao = await ManutencaoUber.findById(id);
 
     if (!manutencao) {
       return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Manutenção não encontrada",
-        },
+        { success: false, message: "Manutenção não encontrada" },
         { status: 404 }
       );
     }
@@ -51,11 +60,7 @@ export async function GET(
     console.error(error);
 
     return NextResponse.json(
-      {
-        success: false,
-        message:
-          "Erro ao buscar manutenção",
-      },
+      { success: false, message: "Erro ao buscar manutenção" },
       { status: 500 }
     );
   }
@@ -67,75 +72,63 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  context: {
-    params: Promise<{ id: string }>;
-  }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const { id } =
-      await context.params;
+    const { id } = await context.params;
 
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        id
-      )
-    ) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "ID inválido",
-        },
+        { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
     const body = await req.json();
 
-    const manutencao =
-      await ManutencaoUber.findByIdAndUpdate(
-        id,
-        {
-          data: new Date(body.data),
+    /* ===================================================
+       CALCULA PRÓXIMA MANUTENÇÃO
+    =================================================== */
 
-          tipo: body.tipo,
+    const regra = REGRAS_MANUTENCAO[body.tipo];
 
-          valor: Number(body.valor),
+    let proximaData: Date | null = null;
+    let proximaKm: number | null = null;
 
-          km: Number(body.km),
+    if (regra) {
+      if (body.data) {
+        const d = new Date(body.data);
+        d.setMonth(d.getMonth() + regra.meses);
+        proximaData = d;
+      }
 
-          // NOVO CAMPO
-          kmAtualVeiculo:
-            Number(
-              body.kmAtualVeiculo
-            ) || 0,
+      if (body.km) {
+        proximaKm = Number(body.km) + regra.km;
+      }
+    }
 
-          status:
-            body.status ||
-            "Concluída",
+    /* ===================================================
+       UPDATE BANCO
+    =================================================== */
 
-          proximaData:
-            body.proximaData
-              ? new Date(
-                  body.proximaData
-                )
-              : null,
+    const manutencao = await ManutencaoUber.findByIdAndUpdate(
+      id,
+      {
+        data: new Date(body.data),
+        tipo: body.tipo,
+        valor: Number(body.valor),
+        km: Number(body.km),
+        status: body.status || "Concluída",
 
-          proximaKm:
-            body.proximaKm
-              ? Number(
-                  body.proximaKm
-                )
-              : null,
+        proximaData,
+        proximaKm,
 
-          observacoes:
-            body.observacoes || "",
-        },
-        {
-          new: true,
-        }
-      );
+        observacoes: body.observacoes || "",
+      },
+      { new: true }
+    );
 
     return NextResponse.json({
       success: true,
@@ -147,9 +140,7 @@ export async function PUT(
     return NextResponse.json(
       {
         success: false,
-        message:
-          error.message ||
-          "Erro ao atualizar manutenção",
+        message: error.message || "Erro ao atualizar manutenção",
       },
       { status: 500 }
     );

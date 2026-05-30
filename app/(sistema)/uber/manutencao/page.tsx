@@ -1,13 +1,27 @@
 "use client";
 
 import PageHeader from "@/components/PageHeader/PageHeader";
-import { Wrench, Plus, AlertCircle } from "lucide-react";
+import {
+  Wrench,
+  Plus,
+  AlertCircle,
+  Search,
+  Pencil,
+  Edit,
+  FileDownIcon,
+  MoveDownIcon,
+  TrendingDownIcon,
+  Gauge,
+  Calendar,
+  Car
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatDateBR } from "@/utils/formatDate";
 import {
   useRouter,
   useSearchParams
 } from "next/navigation";
+import toast from "react-hot-toast";
 
 interface Manutencao {
   _id: string;
@@ -47,10 +61,13 @@ export default function ManutencaoUber() {
     tipo: "",
     valor: "",
     km: "",
-    status: "Concluída",
+    status: "Pendente",
     proximaData: "",
     proximaKm: "",
   });
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [manutSelecionada, setManutSelecionada] = useState<Manutencao | null>(null);
 
   const [filterType, setFilterType] = useState<
     "day" | "month" | "year"
@@ -60,6 +77,11 @@ export default function ManutencaoUber() {
   const [selectedYear, setSelectedYear] = useState("2026");
   const [startDate, setStartDate] = useState("2026-05-01");
   const [endDate, setEndDate] = useState("2026-05-31");
+
+  function abrirConfirmacao(manut: Manutencao) {
+  setManutSelecionada(manut);
+  setShowConfirmModal(true);
+}
 
   /* =========================================================
      BUSCAR DADOS DO BANCO
@@ -138,7 +160,7 @@ export default function ManutencaoUber() {
     } catch (error) {
       console.error(error);
 
-      alert("Erro ao salvar KM atual");
+      toast.error("Erro ao salvar KM atual");
     }
   }
 
@@ -159,6 +181,43 @@ export default function ManutencaoUber() {
       setLoading(false);
     }
   }
+
+  async function concluirManutencao(manut: Manutencao) {
+    try {
+      const response = await fetch(
+        `/api/uber/manutencao/${manut._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            ...manut,
+            status: "Pendente",
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(
+          data.message || "Erro ao concluir manutenção"
+        );
+      }
+
+      toast.success("Manutenção concluída!");
+
+      fetchManutencoes();
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Erro ao concluir manutenção");
+    }
+  }
+
 
   /* =========================================================
      FILTROS
@@ -211,25 +270,60 @@ export default function ManutencaoUber() {
   // Calcular km máximo (atual) do carro
   const kmAtual = Number(kmAtualVeiculo || 0);
   const proximas = manutencoes.filter((m) => {
+    // IGNORA MANUTENÇÕES JÁ CONCLUÍDAS
+    if (m.status === "Pendente") {
+      return false;
+    }
+
     const hoje = new Date();
 
     const umMesAFrente = new Date();
     umMesAFrente.setMonth(umMesAFrente.getMonth() + 1);
 
-    // Alerta por data
+    // DATA ATRASADA
+    const atrasoPorData =
+      m.proximaData &&
+      new Date(m.proximaData) < hoje;
+
+    // DATA PRÓXIMA
     const alertaPorData =
       m.proximaData &&
-      new Date(m.proximaData) <= umMesAFrente &&
-      new Date(m.proximaData) >= hoje;
+      new Date(m.proximaData) >= hoje &&
+      new Date(m.proximaData) <= umMesAFrente;
 
-    // Alerta por KM
+    // KM ATRASADO
+    const atrasoPorKm =
+      m.proximaKm &&
+      kmAtual >= Number(m.proximaKm);
+
+    // KM PRÓXIMO
     const alertaPorKm =
       m.proximaKm &&
       Number(m.proximaKm) > kmAtual &&
       Number(m.proximaKm) - kmAtual <= 2000;
 
-    return alertaPorData || alertaPorKm;
+    return (
+      alertaPorData ||
+      alertaPorKm ||
+      atrasoPorData ||
+      atrasoPorKm
+    );
   });
+
+
+ function confirmarRealizacao() {
+  if (!manutSelecionada) return;
+
+  concluirManutencao(manutSelecionada)
+    .then(() => {
+      setShowConfirmModal(false);
+      setManutSelecionada(null);
+    })
+    .catch((error) => {
+      console.error(error);
+      toast.error("Erro ao concluir manutenção");
+    });
+}
 
   return (
     <div className="space-y-6">
@@ -369,66 +463,89 @@ export default function ManutencaoUber() {
                       umMesAFrente.setMonth(umMesAFrente.getMonth() + 1);
 
                       const alertaPorData =
+
                         manut.proximaData &&
                         new Date(manut.proximaData) <= umMesAFrente &&
                         new Date(manut.proximaData) >= hoje;
 
-                      const alertaPorKm =
+                      const atrasoPorData =
+                        manut.proximaData &&
+                        new Date(manut.proximaData) < hoje;
 
+                      const atrasoPorKm =
+                        manut.proximaKm &&
+                        kmAtual >= Number(manut.proximaKm);
+
+                      const alertaPorKm =
                         manut.proximaKm &&
                         Number(manut.proximaKm) > kmAtual &&
                         Number(manut.proximaKm) - kmAtual <= 2000;
 
                       return (
-                        <li
-                          key={manut._id}
-                          className="flex items-start justify-between gap-3 rounded bg-white/50 p-2 text-sm text-yellow-800"
-                        >
-                          <div>
-                            <strong>{manut.tipo}</strong>
+                        <li className="relative overflow-hidden rounded-xl border border-yellow-200 bg-white shadow-sm transition hover:shadow-md">
 
-                            <div className="ml-4 mt-1 space-y-1">
-                              {alertaPorData && manut.proximaData && (
-                                <div className="font-semibold text-yellow-900">
-                                  ⚠️ 📅 Data próxima:{" "}
-                                  {manut.proximaData
-                                    ? formatDateBR(manut.proximaData)
-                                    : ""}
-                                </div>
-                              )}
+                          {/* BARRA LATERAL DE DESTAQUE */}
+                          <div className="absolute left-0 top-0 h-full w-1 bg-yellow-400" />
 
-                              {alertaPorKm && manut.proximaKm && (
-                                <div className="font-semibold text-yellow-900">
-                                  ⚠️ 🔧 KM próximo:{" "}
-                                  {Number(
-                                    manut.proximaKm
-                                  ).toLocaleString("pt-BR")}{" "}
-                                  km
+                          <div className="flex items-start justify-between gap-4 p-4">
 
-                                  <span className="ml-2 text-xs">
-                                    (faltam{" "}
-                                    {(
-                                      Number(manut.proximaKm) -
-                                      kmAtual
-                                    ).toLocaleString("pt-BR")}{" "}
-                                    km)
-                                  </span>
-                                </div>
-                              )}
+                            {/* CONTEÚDO */}
+                            <div className="flex-1 space-y-2">
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-slate-900">
+                                  {manut.tipo}
+                                </span>
+                              </div>
+
+                              <div className="space-y-1 text-xs text-slate-600">
+
+                                {(alertaPorData || atrasoPorData) && manut.proximaData && (
+                                  <div className={`flex items-center gap-1 font-medium ${atrasoPorData ? "text-red-700" : "text-yellow-800"
+                                    }`}>
+                                    📅 {atrasoPorData ? "Data atrasada:" : "Data próxima:"}
+                                    <span className="font-semibold">
+                                      {formatDateBR(manut.proximaData)}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {(alertaPorKm || atrasoPorKm) && manut.proximaKm && (
+                                  <div className={`flex items-center gap-1 font-medium ${atrasoPorKm ? "text-red-700" : "text-yellow-800"
+                                    }`}>
+                                    🔧 KM {atrasoPorKm ? "ultrapassado:" : "próximo:"}
+                                    <span className="font-semibold">
+                                      {Number(manut.proximaKm).toLocaleString("pt-BR")} km
+                                    </span>
+                                  </div>
+                                )}
+
+                              </div>
+                            </div>
+
+                            {/* AÇÕES */}
+                            <div className="flex flex-col items-end gap-2">
+
+                              <button
+                                type="button"
+                                onClick={() => abrirConfirmacao(manut)}
+                                className="whitespace-nowrap rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-700 active:scale-95 transition"
+                              >
+                                Manutenção realizada?
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  router.push(`/uber/manutencao/${manut._id}`)
+                                }
+                                className="rounded-lg border border-slate-300 p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"
+                              >
+                                <Search className="h-4 w-4" />
+                              </button>
+
                             </div>
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              router.push(
-                                `/uber/manutencao/${manut._id}`
-                              )
-                            }
-                            className="rounded-lg p-2 text-yellow-700 transition hover:bg-yellow-100 hover:text-yellow-900"
-                          >
-                            🔍
-                          </button>
                         </li>
                       );
                     })}
@@ -447,7 +564,7 @@ export default function ManutencaoUber() {
                   Total Gasto
                 </h3>
 
-                <Wrench className="h-5 w-5 text-red-600" />
+                <TrendingDownIcon className="h-5 w-5 text-red-600" />
               </div>
 
               <p className="text-2xl font-bold text-slate-900">
@@ -512,7 +629,7 @@ export default function ManutencaoUber() {
                   KM Atual
                 </h3>
 
-                <Wrench className="h-5 w-5 text-emerald-500" />
+                <Gauge className="h-5 w-5 text-emerald-500" />
               </div>
 
               <p className="text-2xl font-bold text-slate-900">
@@ -553,12 +670,12 @@ export default function ManutencaoUber() {
                       Próxima Manutenção
                     </th>
 
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">
-                      Status
-                    </th>
-
                     <th className="px-6 py-3 text-right text-xs font-semibold uppercase text-slate-600">
                       Valor
+                    </th>
+
+                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-slate-600">
+                      Ações
                     </th>
                   </tr>
                 </thead>
@@ -567,6 +684,12 @@ export default function ManutencaoUber() {
                   {manutencoesFiltradas.length > 0 ? (
                     manutencoesFiltradas.map((manut) => {
                       const dataFormatada = formatDateBR(manut.data);
+                      const hoje = new Date();
+
+                      const umMesAFrente = new Date();
+                      umMesAFrente.setMonth(
+                        umMesAFrente.getMonth() + 1
+                      );
 
                       return (
                         <tr
@@ -588,21 +711,25 @@ export default function ManutencaoUber() {
                           <td className="px-6 py-4 text-sm text-slate-600">
                             <div className="space-y-1">
                               {manut.proximaData && (
-                                <div>📅 {new Date(manut.proximaData).toLocaleDateString("pt-BR")}</div>
+                                <div className="flex items-center gap-2 text-gray-700">
+                                  <Calendar size={16} className="text-blue-500" />
+                                  <span>
+                                    {new Date(manut.proximaData).toLocaleDateString("pt-BR")}
+                                  </span>
+                                </div>
                               )}
                               {manut.proximaKm && (
-                                <div>🔧 {Number(manut.proximaKm).toLocaleString("pt-BR")} km</div>
+                                <div className="flex items-center gap-2 text-gray-700">
+                                  <Gauge size={16} className="text-blue-500" />
+                                  <span>
+                                    {Number(manut.proximaKm).toLocaleString("pt-BR")} km
+                                  </span>
+                                </div>
                               )}
                               {!manut.proximaData && !manut.proximaKm && (
                                 <div>—</div>
                               )}
                             </div>
-                          </td>
-
-                          <td className="px-6 py-4">
-                            <span className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
-                              {manut.status}
-                            </span>
                           </td>
 
                           <td className="px-6 py-4 text-right text-sm font-semibold text-red-600">
@@ -615,13 +742,25 @@ export default function ManutencaoUber() {
                               }
                             )}
                           </td>
+
+                          <td className="px-6 py-4 text-center">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                router.push(`/uber/manutencao/${manut._id}`)
+                              }
+                              className="rounded-lg p-2 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600"
+                            >
+                              <Edit className="h-5 w-5" />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="px-6 py-10 text-center text-sm text-slate-500"
                       >
                         Nenhuma manutenção encontrada para o período.
@@ -700,6 +839,51 @@ export default function ManutencaoUber() {
           </div>
         </div>
       )}
+
+      {showConfirmModal && manutSelecionada && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+
+    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+
+      <h2 className="text-lg font-semibold text-slate-900">
+        Confirmar manutenção
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-600">
+        Tem certeza que deseja marcar como realizada?
+      </p>
+
+      <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <p className="text-sm font-medium text-slate-800">
+          {manutSelecionada.tipo}
+        </p>
+
+        <p className="text-xs text-slate-500 mt-1">
+          Essa ação irá remover este alerta da lista.
+        </p>
+      </div>
+
+      <div className="mt-6 flex justify-end gap-3">
+
+        <button
+          onClick={() => setShowConfirmModal(false)}
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+        >
+          Cancelar
+        </button>
+
+        <button
+          onClick={confirmarRealizacao}
+          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+        >
+          Confirmar
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }

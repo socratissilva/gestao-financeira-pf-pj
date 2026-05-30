@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import AbastecimentoUber from "@/models/abastecimentoUber";
 
+
 export async function POST(req: Request) {
   try {
     await connectDB();

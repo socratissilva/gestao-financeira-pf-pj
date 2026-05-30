@@ -3,8 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 
-import Sidebar from "@/components/Sidebar/Sidebar";
 import Providers from "./providers";
+import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,34 +23,45 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="h-full overflow-hidden">
-
+      <body className="h-full">
         <Providers>
 
-          <div className="flex h-screen w-full overflow-hidden bg-slate-50">
+          {children}
 
-            {/* Sidebar */}
-            <aside className="h-full flex-shrink-0">
-              <Sidebar />
-            </aside>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 2000,
 
-            {/* Conteúdo */}
-            <main className="flex-1 overflow-y-auto p-6">
-              {children}
-            </main>
+              success: {
+                style: {
+                  background: "#16a34a",
+                  color: "#fff",
+                  fontWeight: 700,
+                  padding: "12px 16px",
+                  fontSize: "14px",
+                },
+              },
 
-          </div>
+              error: {
+                style: {
+                  background: "#dc2626",
+                  color: "#fff",
+                  fontWeight: 700,
+                  padding: "12px 16px",
+                  fontSize: "14px",
+                },
+              },
+            }}
+          />
 
         </Providers>
-
       </body>
     </html>
   );

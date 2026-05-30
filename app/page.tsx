@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import Image from "next/image";
 
 export default function LoginPage() {
@@ -13,35 +14,38 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+
     setError("");
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
       });
 
-      const data = await response.json();
+      console.log("RESULT:", result);
 
-      if (!response.ok) {
-        setError(data.error);
+      if (result?.error) {
+        setError("Email ou senha inválidos");
         return;
       }
 
-      router.push("/dashboard");
-    } catch (err) {
+      console.log("INDO PARA DASHBOARD");
+
+      window.location.href = "/dashboard";
+
+    } catch (error) {
+      console.error(error);
+
       setError("Erro ao fazer login");
     }
   };
 
   return (
     <div style={styles.container}>
-      <form onSubmit={handleSubmit} style={styles.form}>
+      <form style={styles.form}>
 
         {/* Bloco Superior da Logo */}
         <div style={styles.logoContainer}>
@@ -112,7 +116,11 @@ export default function LoginPage() {
         </label>
 
         {/* Botão Principal */}
-        <button type="submit" style={styles.button}>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          style={styles.button}
+        >
           Acessar Sistema
         </button>
 

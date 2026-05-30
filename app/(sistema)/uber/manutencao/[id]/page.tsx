@@ -1,7 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import PageHeader from "@/components/PageHeader/PageHeader";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import {
     useEffect,
@@ -13,6 +14,7 @@ import {
     useParams,
     useRouter,
 } from "next/navigation";
+import toast from "react-hot-toast";
 
 /* ========================================================= */
 
@@ -59,12 +61,13 @@ type TipoManutencao =
 
 type StatusManutencao =
     | "Concluída"
-    | "Pendente"
-    | "Agendada";
+    | "Atrasada";
 
 /* ========================================================= */
 
 export default function NovaManutencaoPage() {
+
+
     const router = useRouter();
 
     const params = useParams();
@@ -121,7 +124,7 @@ export default function NovaManutencaoPage() {
                     km: manut.km?.toString() || "",
 
                     status:
-                        manut.status || "Concluída",
+                        manut.status || "Pendente",
 
                     observacoes:
                         manut.observacoes || "",
@@ -130,7 +133,7 @@ export default function NovaManutencaoPage() {
         } catch (error) {
             console.error(error);
 
-            alert("Erro ao carregar manutenção.");
+            toast.error("Erro ao carregar manutenção");
         } finally {
             setLoading(false);
         }
@@ -189,21 +192,11 @@ export default function NovaManutencaoPage() {
        SALVAR
     ========================================================= */
 
-    async function handleSubmit(
-        e: React.FormEvent
-    ) {
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
 
-        if (
-            !formData.data ||
-            !formData.tipo ||
-            !formData.valor ||
-            !formData.km
-        ) {
-            alert(
-                "Preencha os campos obrigatórios."
-            );
-
+        if (!formData.data || !formData.tipo || !formData.valor || !formData.km) {
+            toast.error("Preencha os campos obrigatórios.");
             return;
         }
 
@@ -211,26 +204,14 @@ export default function NovaManutencaoPage() {
             setLoading(true);
 
             const payload = {
-                data: new Date(
-                    formData.data
-                ).toISOString(),
-
+                data: new Date(formData.data).toISOString(),
                 tipo: formData.tipo,
-
                 valor: Number(formData.valor),
-
                 km: Number(formData.km),
-
                 status: formData.status,
-
-                proximaData:
-                    previsao.proximaData || null,
-
-                proximaKm:
-                    previsao.proximaKm || null,
-
-                observacoes:
-                    formData.observacoes,
+                proximaData: previsao.proximaData || null,
+                proximaKm: previsao.proximaKm || null,
+                observacoes: formData.observacoes,
             };
 
             const response = await fetch(
@@ -239,48 +220,32 @@ export default function NovaManutencaoPage() {
                     : "/api/uber/manutencao",
                 {
                     method: id ? "PUT" : "POST",
-
                     headers: {
-                        "Content-Type":
-                            "application/json",
+                        "Content-Type": "application/json",
                     },
-
                     body: JSON.stringify(payload),
                 }
             );
 
-            const data =
-                await response.json();
+            const data = await response.json();
 
-            console.log(
-                "RESPOSTA API:",
-                data
-            );
-
-            if (
-                !response.ok ||
-                !data.success
-            ) {
-                throw new Error(
-                    data?.error ||
-                    "Erro ao salvar manutenção"
-                );
+            if (!response.ok || !data.success) {
+                throw new Error(data?.error || "Erro ao salvar manutenção");
             }
 
-            alert(
+            toast.success(
                 id
                     ? "Manutenção atualizada com sucesso!"
                     : "Manutenção registrada com sucesso!"
             );
 
-            router.push("/uber/manutencao");
+            setTimeout(() => {
+                router.push("/uber/manutencao");
+            }, 2000);
+
         } catch (error: any) {
             console.error(error);
-
-            alert(
-                error.message ||
-                "Erro ao registrar manutenção."
-            );
+            toast.error(error.message || "Erro ao salvar manutenção.");
         } finally {
             setLoading(false);
         }
@@ -291,26 +256,23 @@ export default function NovaManutencaoPage() {
     return (
         <div className="space-y-6">
             {/* HEADER */}
-            <div className="flex items-center gap-4">
-                <Link
-                    href="/uber/manutencao"
-                    className="flex items-center justify-center rounded-lg border border-slate-300 p-2 transition hover:bg-slate-50"
-                >
-                    <ArrowLeft className="h-5 w-5 text-slate-600" />
-                </Link>
-
+            <div className="flex items-center justify-between">
                 <PageHeader
-                    title={
-                        id
-                            ? "Editar Manutenção"
-                            : "Nova Manutenção"
-                    }
+                    title={id ? "Editar Manutenção" : "Nova Manutenção"}
                     description={
                         id
                             ? "Atualize os dados da manutenção"
                             : "Registre uma nova manutenção do veículo"
                     }
                 />
+
+                <Link
+                    href="/uber/manutencao"
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:shadow"
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                    Voltar
+                </Link>
             </div>
 
             {/* CARD */}
@@ -427,46 +389,45 @@ export default function NovaManutencaoPage() {
                     </div>
 
                     {/* PREVISÕES */}
-                    {(previsao.proximaData ||
-                        previsao.proximaKm > 0) && (
-                            <div className="grid gap-6 md:grid-cols-2">
+                    {formData.tipo && (
+                        <div className="grid gap-6 md:grid-cols-2">
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-700">
-                                        Próxima manutenção por data
-                                    </label>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700">
+                                    Próxima manutenção por data
+                                </label>
 
-                                    <input
-                                        disabled
-                                        value={
-                                            previsao.proximaData
-                                                ? formatDateBR(previsao.proximaData)
-                                                : ""
-                                        }
-                                        placeholder="Próxima data"
-                                        className="w-full rounded-lg border border-slate-300 bg-slate-100 px-4 py-2"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-700">
-                                        Próxima manutenção por KM
-                                    </label>
-
-                                    <input
-                                        disabled
-                                        value={
-                                            previsao.proximaKm
-                                                ? `${previsao.proximaKm} km`
-                                                : ""
-                                        }
-                                        placeholder="Próxima KM"
-                                        className="w-full rounded-lg border border-slate-300 bg-slate-100 px-4 py-2"
-                                    />
-                                </div>
-
+                                <input
+                                    disabled
+                                    value={
+                                        previsao.proximaData
+                                            ? formatDateBR(previsao.proximaData)
+                                            : ""
+                                    }
+                                    placeholder="Próxima data"
+                                    className="w-full rounded-lg border border-slate-300 bg-slate-100 px-4 py-2"
+                                />
                             </div>
-                        )}
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700">
+                                    Próxima manutenção por KM
+                                </label>
+
+                                <input
+                                    disabled
+                                    value={
+                                        previsao.proximaKm
+                                            ? `${previsao.proximaKm} km`
+                                            : ""
+                                    }
+                                    placeholder="Próxima KM"
+                                    className="w-full rounded-lg border border-slate-300 bg-slate-100 px-4 py-2"
+                                />
+                            </div>
+
+                        </div>
+                    )}
 
                     {/* STATUS */}
                     <div className="space-y-2">
@@ -491,13 +452,10 @@ export default function NovaManutencaoPage() {
                                 Concluída
                             </option>
 
-                            <option value="Pendente">
-                                Pendente
+                            <option value="Atrasada">
+                                Atrasada
                             </option>
 
-                            <option value="Agendada">
-                                Agendada
-                            </option>
                         </select>
 
                     </div>
