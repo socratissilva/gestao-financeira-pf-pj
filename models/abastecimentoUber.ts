@@ -2,6 +2,12 @@ import mongoose, { Schema, models, model } from "mongoose";
 
 const AbastecimentoUberSchema = new Schema(
   {
+    userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  
     data: {
       type: Date,
       required: true,

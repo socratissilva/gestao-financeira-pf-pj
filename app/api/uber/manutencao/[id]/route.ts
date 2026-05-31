@@ -1,7 +1,10 @@
+// app/api/uber/manutencao/[id]/route.ts
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import ManutencaoUber from "@/models/manutencaoUber";
 import mongoose from "mongoose";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 /* =======================================================
    REGRAS
@@ -29,12 +32,21 @@ const REGRAS_MANUTENCAO: Record<
 
 export async function GET(
   req: Request,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
     await connectDB();
 
-    const { id } = await context.params;
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, message: "Não autenticado" },
+        { status: 401 }
+      );
+    }
+
+    const { id } = context.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -43,7 +55,10 @@ export async function GET(
       );
     }
 
-    const manutencao = await ManutencaoUber.findById(id);
+    const manutencao = await ManutencaoUber.findOne({
+      _id: id,
+      userId: session.user.id, // 🔐 SEGURANÇA CRÍTICA
+    });
 
     if (!manutencao) {
       return NextResponse.json(
@@ -57,8 +72,6 @@ export async function GET(
       manutencao,
     });
   } catch (error) {
-    console.error(error);
-
     return NextResponse.json(
       { success: false, message: "Erro ao buscar manutenção" },
       { status: 500 }
@@ -72,12 +85,21 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
     await connectDB();
 
-    const { id } = await context.params;
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, message: "Não autenticado" },
+        { status: 401 }
+      );
+    }
+
+    const { id } = context.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -88,9 +110,18 @@ export async function PUT(
 
     const body = await req.json();
 
-    /* ===================================================
-       CALCULA PRÓXIMA MANUTENÇÃO
-    =================================================== */
+    // 🔐 garante que só atualiza do próprio usuário
+    const manutencaoExistente = await ManutencaoUber.findOne({
+      _id: id,
+      userId: session.user.id,
+    });
+
+    if (!manutencaoExistente) {
+      return NextResponse.json(
+        { success: false, message: "Não autorizado ou não encontrado" },
+        { status: 404 }
+      );
+    }
 
     const regra = REGRAS_MANUTENCAO[body.tipo];
 
@@ -109,10 +140,6 @@ export async function PUT(
       }
     }
 
-    /* ===================================================
-       UPDATE BANCO
-    =================================================== */
-
     const manutencao = await ManutencaoUber.findByIdAndUpdate(
       id,
       {
@@ -121,10 +148,8 @@ export async function PUT(
         valor: Number(body.valor),
         km: Number(body.km),
         status: body.status || "Concluída",
-
         proximaData,
         proximaKm,
-
         observacoes: body.observacoes || "",
       },
       { new: true }
@@ -135,8 +160,6 @@ export async function PUT(
       manutencao,
     });
   } catch (error: any) {
-    console.error(error);
-
     return NextResponse.json(
       {
         success: false,

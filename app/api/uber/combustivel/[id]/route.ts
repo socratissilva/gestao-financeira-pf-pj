@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import AbastecimentoUber from "@/models/abastecimentoUber";
 import mongoose from "mongoose";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(
   req: Request,
@@ -9,6 +11,20 @@ export async function GET(
 ) {
   try {
     await connectDB();
+
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Não autenticado",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
 
     const { id } = await context.params;
 
@@ -19,12 +35,21 @@ export async function GET(
       );
     }
 
-    const abastecimento = await AbastecimentoUber.findById(id);
+    const abastecimento =
+      await AbastecimentoUber.findOne({
+        _id: id,
+        userId: session.user.id,
+      });
 
     if (!abastecimento) {
       return NextResponse.json(
-        { success: false, error: "Registro não encontrado" },
-        { status: 404 }
+        {
+          success: false,
+          error: "Registro não encontrado",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
@@ -33,18 +58,40 @@ export async function GET(
       abastecimento,
     });
   } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
-      { success: false, error: "Erro ao buscar abastecimento" },
-      { status: 500 }
+      {
+        success: false,
+        error: "Erro ao buscar abastecimento",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
+
 export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Não autenticado",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
 
     const { id } = await context.params;
 
@@ -57,23 +104,34 @@ export async function PUT(
 
     const body = await req.json();
 
-    const abastecimento = await AbastecimentoUber.findByIdAndUpdate(
-      id,
-      {
-        data: new Date(body.data),
-        litros: Number(body.litros),
-        km: Number(body.km),
-        valor: Number(body.valor),
-        preco: Number(body.preco),
-        consumo: Number(body.consumo),
-      },
-      { new: true }
-    );
+    const abastecimento =
+      await AbastecimentoUber.findOneAndUpdate(
+        {
+          _id: id,
+          userId: session.user.id,
+        },
+        {
+          data: new Date(body.data),
+          litros: Number(body.litros),
+          km: Number(body.km),
+          valor: Number(body.valor),
+          preco: body.preco,
+          consumo: body.consumo,
+        },
+        {
+          new: true,
+        }
+      );
 
     if (!abastecimento) {
       return NextResponse.json(
-        { success: false, error: "Registro não encontrado" },
-        { status: 404 }
+        {
+          success: false,
+          error: "Registro não encontrado",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
@@ -82,9 +140,16 @@ export async function PUT(
       abastecimento,
     });
   } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
-      { success: false, error: "Erro ao atualizar abastecimento" },
-      { status: 500 }
+      {
+        success: false,
+        error: "Erro ao atualizar abastecimento",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

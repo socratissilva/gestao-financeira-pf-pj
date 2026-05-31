@@ -2,6 +2,13 @@ import mongoose, { Schema } from "mongoose";
 
 const configuracaoUberSchema = new Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
+
     kmAtualVeiculo: {
       type: Number,
       default: 0,
