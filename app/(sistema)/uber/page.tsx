@@ -1,5 +1,5 @@
+//app/(sistema)/uber/page.tsx
 "use client";
-
 import PageHeader from "@/components/PageHeader/PageHeader";
 
 import {
@@ -25,50 +25,307 @@ import {
     Line,
 } from "recharts";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+interface Ganho {
+    data: string;
+    valorBruto: number;
+    horasTrabalhadas: number;
+    kmRodados: number;
+}
+
+interface Combustivel {
+    data: string;
+    valor: number;
+}
+
+interface Manutencao {
+    data: string;
+    valor: number;
+}
 
 export default function UberOverview() {
-    const [filterType, setFilterType] = useState<"day" | "month" | "year">("month");
+    const [filterType, setFilterType] =
+        useState<"day" | "month" | "year">("month");
 
-    const [selectedMonth, setSelectedMonth] = useState("05-2026");
+    const hoje = new Date();
 
-    const [startDate, setStartDate] = useState("2026-05-01");
+    const formatDateInput = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+        const day = String(
+            date.getDate()
+        ).padStart(2, "0");
 
-    const [endDate, setEndDate] = useState("2026-05-25");
-
-    const chartData = [
-        { mes: "Jun", ganhos: 2600, despesas: 520, lucro: 2080 },
-        { mes: "Jul", ganhos: 2400, despesas: 490, lucro: 1910 },
-        { mes: "Ago", ganhos: 2800, despesas: 610, lucro: 2190 },
-        { mes: "Set", ganhos: 3000, despesas: 720, lucro: 2280 },
-        { mes: "Out", ganhos: 2750, despesas: 580, lucro: 2170 },
-        { mes: "Nov", ganhos: 3200, despesas: 760, lucro: 2440 },
-        { mes: "Dez", ganhos: 3500, despesas: 890, lucro: 2610 },
-        { mes: "Jan", ganhos: 2900, despesas: 640, lucro: 2260 },
-        { mes: "Fev", ganhos: 2700, despesas: 600, lucro: 2100 },
-        { mes: "Mar", ganhos: 2800, despesas: 670, lucro: 2130 },
-        { mes: "Abr", ganhos: 2100, despesas: 400, lucro: 1700 },
-        { mes: "Mai", ganhos: 2450, despesas: 530, lucro: 1920 },
-    ].slice(-12);
-
-    const monthlyStats = {
-        "05-2026": {
-            ganhos: "R$ 2.450,00",
-            combustivel: "R$ 380,50",
-            manutencao: "R$ 150,00",
-            lucroLiquido: "R$ 1.919,50",
-        },
+        return `${year}-${month}-${day}`;
     };
 
-    const currentStats =
-        monthlyStats[selectedMonth as keyof typeof monthlyStats] ||
-        monthlyStats["05-2026"];
+    const parseDate = (value: string) => {
+        // evita shift de timezone
+        const [y, m, d] = value.split("T")[0].split("-").map(Number);
+        return new Date(y, m - 1, d);
+    };
+
+    const [selectedMonth, setSelectedMonth] = useState(() => {
+        const hoje = new Date();
+
+        return `${String(hoje.getMonth() + 1).padStart(2, "0")}-${hoje.getFullYear()}`;
+    });
+
+    const [startDate, setStartDate] = useState(() => {
+        const hoje = new Date();
+
+        return formatDateInput(
+            new Date(
+                hoje.getFullYear(),
+                hoje.getMonth(),
+                1
+            )
+        );
+    });
+    useState(
+        formatDateInput(
+            new Date(
+                hoje.getFullYear(),
+                hoje.getMonth(),
+                1
+            )
+        )
+    );
+
+    const [endDate, setEndDate] = useState(() => {
+        const hoje = new Date();
+
+        return formatDateInput(
+            new Date(
+                hoje.getFullYear(),
+                hoje.getMonth() + 1,
+                0
+            )
+        );
+    });
+    useState(
+        formatDateInput(
+            new Date(
+                hoje.getFullYear(),
+                hoje.getMonth() + 1,
+                0
+            )
+        )
+    );
+
+    // NOVOS STATES
+    const [ganhos, setGanhos] =
+        useState<Ganho[]>([]);
+
+    const [combustiveis, setCombustiveis] =
+        useState<Combustivel[]>([]);
+
+    const [manutencoes, setManutencoes] =
+        useState<Manutencao[]>([]);
+
+    const [loading, setLoading] =
+        useState(true);
+
+    useEffect(() => {
+        const carregarDados = async () => {
+            try {
+                setLoading(true);
+
+                const [
+                    ganhosRes,
+                    combustivelRes,
+                    manutencaoRes,
+                ] = await Promise.all([
+                    fetch("/api/uber/ganhos"),
+                    fetch("/api/uber/combustivel"),
+                    fetch("/api/uber/manutencao"),
+                ]);
+
+                const ganhosData = await ganhosRes.json();
+                const combustivelData = await combustivelRes.json();
+                const manutencaoData = await manutencaoRes.json();
+
+                setGanhos(ganhosData.ganhos || []);
+                setCombustiveis(
+                    combustivelData.abastecimentos || []
+                );
+                setManutencoes(
+                    manutencaoData.manutencoes || []
+                );
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        carregarDados();
+    }, []);
+
+    const [selectedYear, setSelectedYear] =
+        useState(
+            new Date().getFullYear().toString()
+        );
+
+    const ganhosFiltrados = useMemo(() => {
+        return ganhos.filter((item) => {
+            const data = parseDate(item.data);
+            if (filterType === "month") {
+                const [mes, ano] = selectedMonth.split("-");
+
+                const dataMes = data.getMonth() + 1;
+                const dataAno = data.getFullYear();
+
+                return (
+                    dataMes === Number(mes) &&
+                    dataAno === Number(ano)
+                );
+            }
+
+            if (filterType === "year") {
+                return (
+                    data.getUTCFullYear() === Number(selectedYear)
+                );
+            }
+
+            if (filterType === "day") {
+                return (
+                    data >= new Date(startDate) &&
+                    data <= new Date(endDate)
+                );
+            }
+
+            return true;
+        });
+    }, [
+        ganhos,
+        filterType,
+        selectedMonth,
+        selectedYear,
+        startDate,
+        endDate,
+    ]);
+
+    const combustiveisFiltrados = useMemo(() => {
+        return combustiveis.filter((item) => {
+            const data = parseDate(item.data);
+
+            if (filterType === "month") {
+                const [mes, ano] = selectedMonth.split("-");
+
+                const dataMes = data.getMonth() + 1;
+                const dataAno = data.getFullYear();
+
+                return (
+                    dataMes === Number(mes) &&
+                    dataAno === Number(ano)
+                );
+            }
+
+            if (filterType === "year") {
+                return data.getUTCFullYear() === Number(selectedYear);
+            }
+
+            if (filterType === "day") {
+                return (
+                    data >= new Date(startDate) &&
+                    data <= new Date(endDate)
+                );
+            }
+
+            return true;
+        });
+    }, [
+        combustiveis,
+        filterType,
+        selectedMonth,
+        selectedYear,
+        startDate,
+        endDate,
+    ]);
+
+    const manutencoesFiltradas = useMemo(() => {
+        return manutencoes.filter((item) => {
+            const data = parseDate(item.data);
+
+            if (filterType === "month") {
+                const [mes, ano] = selectedMonth.split("-");
+
+                const dataMes = data.getMonth() + 1;
+                const dataAno = data.getFullYear();
+
+                return (
+                    dataMes === Number(mes) &&
+                    dataAno === Number(ano)
+                );
+            }
+
+            if (filterType === "year") {
+                return (
+                    data.getUTCFullYear() === Number(selectedYear)
+                );
+            }
+
+            if (filterType === "day") {
+                return (
+                    data >= new Date(startDate) &&
+                    data <= new Date(endDate)
+                );
+            }
+
+            return true;
+        });
+    }, [
+        manutencoes,
+        filterType,
+        selectedMonth,
+        selectedYear,
+        startDate,
+        endDate,
+    ]);
+
+
+
+    const totalGanhos = useMemo(() => {
+        return ganhosFiltrados.reduce(
+            (acc, item) => acc + Number(item.valorBruto || 0),
+            0
+        );
+    }, [ganhosFiltrados]);
+
+    const totalCombustivel = useMemo(() => {
+        return combustiveisFiltrados.reduce(
+            (acc, item) => acc + Number(item.valor || 0),
+            0
+        );
+    }, [combustiveisFiltrados]);
+
+    const totalManutencao = useMemo(() => {
+        return manutencoesFiltradas.reduce(
+            (acc, item) => acc + Number(item.valor || 0),
+            0
+        );
+    }, [manutencoesFiltradas]);
+
+    const lucroLiquido =
+        totalGanhos -
+        totalCombustivel -
+        totalManutencao;
+
+    const formatMoney = (value: number) =>
+        value.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        });
 
     const stats = [
         {
             label: "Ganhos Totais",
-            value: currentStats.ganhos,
-            percentage: "+12%",
+            value: formatMoney(totalGanhos),
+            percentage: "",
             icon: TrendingUp,
             color: "bg-green-50",
             text: "text-green-600",
@@ -76,8 +333,14 @@ export default function UberOverview() {
 
         {
             label: "Combustível",
-            value: currentStats.combustivel,
-            percentage: "15% da receita",
+            value: formatMoney(totalCombustivel),
+            percentage:
+                totalGanhos > 0
+                    ? `${(
+                        (totalCombustivel / totalGanhos) *
+                        100
+                    ).toFixed(1)}% da receita`
+                    : "0%",
             icon: Fuel,
             color: "bg-orange-50",
             text: "text-orange-600",
@@ -85,13 +348,224 @@ export default function UberOverview() {
 
         {
             label: "Manutenção",
-            value: currentStats.manutencao,
-            percentage: "6% da receita",
+            value: formatMoney(totalManutencao),
+            percentage:
+                totalGanhos > 0
+                    ? `${(
+                        (totalManutencao / totalGanhos) *
+                        100
+                    ).toFixed(1)}% da receita`
+                    : "0%",
             icon: Wrench,
-            color:"bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-500 shadow-lg",
+            color:
+                "bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-500 shadow-lg",
             text: "text-red-600",
         },
     ];
+
+    const totalHoras = useMemo(() => {
+        return ganhosFiltrados.reduce(
+            (acc, item) => acc + Number(item.horasTrabalhadas || 0),
+            0
+        );
+    }, [ganhosFiltrados]);
+
+    const totalKm = useMemo(() => {
+        return ganhosFiltrados.reduce(
+            (acc, item) => acc + Number(item.kmRodados || 0),
+            0
+        );
+    }, [ganhosFiltrados]);
+
+    const ganhoPorHora =
+        totalHoras > 0
+            ? totalGanhos / totalHoras
+            : 0;
+
+    const ganhoPorKm =
+        totalKm > 0
+            ? totalGanhos / totalKm
+            : 0;
+
+    const margemLucro =
+        totalGanhos > 0
+            ? (lucroLiquido / totalGanhos) * 100
+            : 0;
+
+    const chartData = useMemo(() => {
+        const meses: Record<
+            string,
+            {
+                mes: string;
+                ordem: number;
+                ganhos: number;
+                despesas: number;
+                lucro: number;
+            }
+        > = {};
+
+        ganhosFiltrados.forEach((item) => {
+            const data = parseDate(item.data);
+
+            const chave = `${String(data.getMonth() + 1).padStart(2, "0")}-${data.getFullYear()}`;
+
+            if (!meses[chave]) {
+                meses[chave] = {
+                    mes: chave,
+                    ordem: data.getFullYear() * 100 + (data.getMonth() + 1),
+                    ganhos: 0,
+                    despesas: 0,
+                    lucro: 0,
+                };
+            }
+
+            meses[chave].ganhos += Number(item.valorBruto || 0);
+        });
+
+        combustiveisFiltrados.forEach((item) => {
+            const data = parseDate(item.data);
+
+            const chave = `${String(data.getMonth() + 1).padStart(2, "0")}-${data.getFullYear()}`;
+
+            if (!meses[chave]) {
+                meses[chave] = {
+                    mes: chave,
+                    ordem: data.getFullYear() * 100 + (data.getMonth() + 1),
+                    ganhos: 0,
+                    despesas: 0,
+                    lucro: 0,
+                };
+            }
+
+            meses[chave].despesas += Number(item.valor || 0);
+        });
+
+        manutencoesFiltradas.forEach((item) => {
+            const data = parseDate(item.data);
+
+            const chave = `${String(data.getMonth() + 1).padStart(2, "0")}-${data.getFullYear()}`;
+
+            if (!meses[chave]) {
+                meses[chave] = {
+                    mes: chave,
+                    ordem: data.getFullYear() * 100 + (data.getMonth() + 1),
+                    ganhos: 0,
+                    despesas: 0,
+                    lucro: 0,
+                };
+            }
+
+            meses[chave].despesas += Number(item.valor || 0);
+        });
+
+        return Object.values(meses)
+            .sort((a, b) => a.ordem - b.ordem)
+            .map((item) => {
+                const [mes, ano] = item.mes.split("-");
+
+                const nomeMes = new Date(Number(ano), Number(mes) - 1)
+                    .toLocaleDateString("pt-BR", { month: "short" });
+
+                return {
+                    ...item,
+                    mes: `${nomeMes} ${ano}`,
+                    lucro: item.ganhos - item.despesas,
+                };
+            });
+    }, [ganhosFiltrados, combustiveisFiltrados, manutencoesFiltradas]);
+
+    const indicadores = [
+        {
+            label: "Horas Trabalhadas",
+            value: `${totalHoras.toFixed(1)}h`,
+            icon: Clock3,
+            color: "text-slate-500",
+        },
+        {
+            label: "KM Rodados",
+            value: `${totalKm.toLocaleString("pt-BR")} km`,
+            icon: Car,
+            color: "text-slate-500",
+        },
+        {
+            label: "Ganho por Hora",
+            value: `${formatMoney(ganhoPorHora)}/h`,
+            icon: TrendingUp,
+            color: "text-green-600",
+        },
+        {
+            label: "Ganho por KM",
+            value: `${formatMoney(ganhoPorKm)}/km`,
+            icon: Fuel,
+            color: "text-blue-600",
+        },
+        {
+            label: "Saúde Financeira",
+            value: "87/100 Excelente",
+            icon: Target,
+            color: "text-green-700",
+            badge: true,
+        },
+    ];
+
+    const mesesDisponiveis = useMemo(() => {
+        const meses = new Set<string>();
+
+        ganhos.forEach((item) => {
+            const data = parseDate(item.data);
+
+            const mes = String(data.getMonth() + 1).padStart(2, "0");
+            const ano = data.getFullYear();
+
+            meses.add(`${mes}-${ano}`);
+        });
+
+        return Array.from(meses).sort((a, b) => {
+            const [mesA, anoA] = a.split("-").map(Number);
+            const [mesB, anoB] = b.split("-").map(Number);
+
+            return anoB * 100 + mesB - (anoA * 100 + mesA);
+        });
+    }, [ganhos]);
+
+
+    const anosDisponiveis = useMemo(() => {
+        const anos = new Set<string>();
+
+        ganhos.forEach((item) => {
+            anos.add(
+                String(
+                    new Date(item.data).getFullYear()
+                )
+            );
+        });
+
+        return Array.from(anos).sort(
+            (a, b) => Number(b) - Number(a)
+        );
+    }, [ganhos]);
+
+    useEffect(() => {
+        if (
+            mesesDisponiveis.length > 0 &&
+            !selectedMonth
+        ) {
+            setSelectedMonth(
+                mesesDisponiveis[0]
+            );
+        }
+    }, [mesesDisponiveis, selectedMonth]);
+
+    useEffect(() => {
+        if (
+            anosDisponiveis.length > 0 &&
+            !selectedYear
+        ) {
+            setSelectedYear(
+                anosDisponiveis[0]
+            );
+        }
+    }, [anosDisponiveis, selectedYear]);
 
     return (
         <div className="space-y-6">
@@ -102,8 +576,10 @@ export default function UberOverview() {
 
             {/* Filtros */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex flex-wrap items-end gap-6">
-                    <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-6">
+
+                    {/* ESQUERDA */}
+                    <div className="flex items-center gap-4">
                         <label className="flex items-center gap-2">
                             <input
                                 type="radio"
@@ -111,7 +587,6 @@ export default function UberOverview() {
                                 checked={filterType === "month"}
                                 onChange={() => setFilterType("month")}
                             />
-
                             <span className="text-sm font-medium text-slate-700">
                                 Por Mês
                             </span>
@@ -124,7 +599,6 @@ export default function UberOverview() {
                                 checked={filterType === "year"}
                                 onChange={() => setFilterType("year")}
                             />
-
                             <span className="text-sm font-medium text-slate-700">
                                 Por Ano
                             </span>
@@ -137,53 +611,87 @@ export default function UberOverview() {
                                 checked={filterType === "day"}
                                 onChange={() => setFilterType("day")}
                             />
-
                             <span className="text-sm font-medium text-slate-700">
                                 Por Período
                             </span>
                         </label>
                     </div>
 
-                    {filterType === "month" && (
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
-                        >
-                            <option value="05-2026">Maio 2026</option>
-                            <option value="04-2026">Abril 2026</option>
-                            <option value="03-2026">Março 2026</option>
-                        </select>
-                    )}
-
-                    {filterType === "year" && (
-                        <select className="rounded-lg border border-slate-300 px-4 py-2 text-sm">
-                            <option>2026</option>
-                            <option>2025</option>
-                            <option>2024</option>
-                        </select>
-                    )}
-
-                    {filterType === "day" && (
-                        <div className="flex items-center gap-4">
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
+                    {/* DIREITA */}
+                    <div>
+                        {filterType === "month" && (
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) =>
+                                    setSelectedMonth(e.target.value)
+                                }
                                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
-                            />
+                            >
+                                {mesesDisponiveis.map((mes) => {
+                                    const [numeroMes, ano] = mes.split("-");
 
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
+                                    const nomeMes = new Date(
+                                        Number(ano),
+                                        Number(numeroMes) - 1
+                                    ).toLocaleDateString("pt-BR", {
+                                        month: "long",
+                                    });
+
+                                    return (
+                                        <option
+                                            key={mes}
+                                            value={mes}
+                                        >
+                                            {nomeMes.charAt(0).toUpperCase() +
+                                                nomeMes.slice(1)}{" "}
+                                            {ano}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        )}
+
+                        {filterType === "year" && (
+                            <select
+                                value={selectedYear}
+                                onChange={(e) =>
+                                    setSelectedYear(e.target.value)
+                                }
                                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
-                            />
-                        </div>
-                    )}
+                            >
+                                {anosDisponiveis.map((ano) => (
+                                    <option
+                                        key={ano}
+                                        value={ano}
+                                    >
+                                        {ano}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+
+                        {filterType === "day" && (
+                            <div className="flex items-center gap-4">
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                                />
+
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                                />
+                            </div>
+                        )}
+                    </div>
+
                 </div>
             </div>
-            
+
 
             {/* Cards */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -198,7 +706,7 @@ export default function UberOverview() {
                             </p>
 
                             <h2 className="mt-2 text-4xl font-bold">
-                                {currentStats.lucroLiquido}
+                                {formatMoney(lucroLiquido)}
                             </h2>
                         </div>
 
@@ -206,10 +714,12 @@ export default function UberOverview() {
                     </div>
 
                     <div className="flex items-center justify-between text-sm">
-                        <span>78% de margem de lucro</span>
+                        <span>
+                            {margemLucro.toFixed(1)}% de margem de lucro
+                        </span>
 
                         <span className="rounded-full bg-blue-500 px-3 py-1">
-                            ↑ +18%
+                            Dados Reais
                         </span>
                     </div>
                 </div>
@@ -346,20 +856,29 @@ export default function UberOverview() {
                     <div className="space-y-4 text-sm text-slate-700">
 
                         <div className="rounded-lg bg-green-50 p-4">
-                            Seu lucro líquido aumentou 12% em relação ao mês anterior.
+                            Lucro líquido atual: {formatMoney(lucroLiquido)}
                         </div>
 
                         <div className="rounded-lg bg-orange-50 p-4">
-                            O combustível representou 15% da sua receita mensal.
+                            Combustível representa{" "}
+                            {totalGanhos > 0
+                                ? ((totalCombustivel / totalGanhos) * 100).toFixed(1)
+                                : 0}
+                            % da receita.
                         </div>
 
                         <div className="rounded-lg bg-red-50 p-4">
-                            Os custos de manutenção ficaram abaixo da média histórica.
+                            Manutenção representa{" "}
+                            {totalGanhos > 0
+                                ? ((totalManutencao / totalGanhos) * 100).toFixed(1)
+                                : 0}
+                            % da receita.
                         </div>
 
                         <div className="rounded-lg bg-blue-50 p-4">
-                            Seu melhor desempenho ocorreu nos finais de semana.
+                            Ganho médio por hora: {formatMoney(ganhoPorHora)}
                         </div>
+
                     </div>
                 </div>
 
@@ -371,66 +890,32 @@ export default function UberOverview() {
                     </h2>
 
                     <div className="space-y-5">
+                        {indicadores.map((item, idx) => {
+                            const Icon = item.icon;
 
-                        <div className="flex items-center justify-between">
+                            return (
+                                <div key={idx} className="flex items-center justify-between">
 
-                            <div className="flex items-center gap-3">
-                                <Clock3 className="h-5 w-5 text-slate-500" />
+                                    <div className="flex items-center gap-3">
+                                        <Icon className={`h-5 w-5 ${item.color}`} />
 
-                                <span className="text-slate-700">
-                                    Horas Trabalhadas
-                                </span>
-                            </div>
+                                        <span className="text-slate-700">
+                                            {item.label}
+                                        </span>
+                                    </div>
 
-                            <span className="font-semibold">
-                                72h
-                            </span>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-
-                            <div className="flex items-center gap-3">
-                                <Car className="h-5 w-5 text-slate-500" />
-
-                                <span className="text-slate-700">
-                                    KM Rodados
-                                </span>
-                            </div>
-
-                            <span className="font-semibold">
-                                1.240 km
-                            </span>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-700">
-                                Ganho por Hora
-                            </span>
-
-                            <span className="font-semibold text-green-600">
-                                R$ 34/h
-                            </span>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-700">
-                                Ganho por KM
-                            </span>
-
-                            <span className="font-semibold text-blue-600">
-                                R$ 1,97/km
-                            </span>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-700">
-                                Saúde Financeira
-                            </span>
-
-                            <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
-                                87/100 Excelente
-                            </span>
-                        </div>
+                                    {item.badge ? (
+                                        <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
+                                            {item.value}
+                                        </span>
+                                    ) : (
+                                        <span className={`font-semibold ${item.color}`}>
+                                            {item.value}
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

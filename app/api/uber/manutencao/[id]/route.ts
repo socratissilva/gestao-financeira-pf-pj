@@ -32,7 +32,7 @@ const REGRAS_MANUTENCAO: Record<
 
 export async function GET(
   req: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -46,7 +46,7 @@ export async function GET(
       );
     }
 
-    const { id } = context.params;
+    const { id } = await context.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -57,7 +57,7 @@ export async function GET(
 
     const manutencao = await ManutencaoUber.findOne({
       _id: id,
-      userId: session.user.id, // 🔐 SEGURANÇA CRÍTICA
+      userId: session.user.id,
     });
 
     if (!manutencao) {
@@ -71,7 +71,10 @@ export async function GET(
       success: true,
       manutencao,
     });
+
   } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
       { success: false, message: "Erro ao buscar manutenção" },
       { status: 500 }
@@ -85,7 +88,7 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -99,7 +102,7 @@ export async function PUT(
       );
     }
 
-    const { id } = context.params;
+    const { id } = await context.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(

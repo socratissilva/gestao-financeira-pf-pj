@@ -1,3 +1,4 @@
+//models/ganhoUber.ts
 import mongoose, { Schema, models, model } from "mongoose";
 
 const GanhoUberSchema = new Schema(

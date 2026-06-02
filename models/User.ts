@@ -1,6 +1,6 @@
 import mongoose, { Schema, models } from "mongoose";
 
-const UserSchema = new Schema(
+const UserSchema = new mongoose.Schema(
   {
     nome: {
       type: String,
@@ -20,13 +20,22 @@ const UserSchema = new Schema(
 
     role: {
       type: String,
-      enum: ["ADMIN", "PADRAO"],
       default: "PADRAO",
     },
 
     isAtivo: {
       type: Boolean,
       default: true,
+    },
+
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+
+    resetPasswordExpire: {
+      type: Date,
+      default: null,
     },
   },
   {

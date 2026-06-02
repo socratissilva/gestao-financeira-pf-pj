@@ -42,22 +42,28 @@ import { signOut, useSession } from "next-auth/react";
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
 interface NavItem { label: string; href: string; icon: LucideIcon }
-interface NavGroup { group: string; children: NavItem[] }
+interface NavGroup {
+  key: keyof typeof MODULES;
+  group: string;
+  children: NavItem[];
+}
 type NavEntry = NavItem | NavGroup;
 
 function isGroup(e: NavEntry): e is NavGroup { return "group" in e; }
 
 // ── Navegação ─────────────────────────────────────────────────────────────────
+const MODULES = {
+  uber: true,
+  financeiro: false,
+  investimentos: false,
+  organizacao: false,
+  cadastro: false,
+};
+
 
 const NAV: NavEntry[] = [
   {
-    group: "Principal",
-    children: [
-      { label: "Dashboard", href: "/dashboard", icon: Home },
-    ],
-  },
-
-  {
+    key: "organizacao",
     group: "Organização",
     children: [
       { label: "Calendário", href: "/calendario", icon: Calendar },
@@ -67,6 +73,7 @@ const NAV: NavEntry[] = [
   },
 
   {
+    key: "financeiro",
     group: "Financeiro",
     children: [
       { label: "Visão Geral", href: "/financeiro", icon: Wallet },
@@ -77,17 +84,19 @@ const NAV: NavEntry[] = [
   },
 
   {
+    key: "uber",
     group: "Uber",
     children: [
       { label: "Visão Geral", href: "/uber", icon: Car },
       { label: "Ganhos", href: "/uber/ganhos", icon: TrendingUp },
       { label: "Combustível", href: "/uber/combustivel", icon: Fuel },
       { label: "Manutenção", href: "/uber/manutencao?openKmModal=true", icon: Wrench },
-      { label: "Relatórios", href: "/relatorios", icon: ClipboardList },
+      // { label: "Relatórios", href: "/relatorios", icon: ClipboardList },
     ],
   },
 
   {
+    key: "investimentos",
     group: "Investimentos",
     children: [
       { label: "Visão Geral", href: "/investimentos", icon: LineChart },
@@ -101,15 +110,24 @@ const NAV: NavEntry[] = [
   },
 
   {
+    key: "cadastro",
     group: "Cadastro",
     children: [
-      // { label: "Clientes", href: "/clientes", icon: Users },
       { label: "Usuários", href: "/usuarios", icon: UserPen },
     ],
   },
 ];
 
-const ALL_ITEMS: NavItem[] = NAV.flatMap((e) => isGroup(e) ? e.children : [e]);
+const NAV_VISIBLE: NavEntry[] = NAV.filter((entry) => {
+  if (!isGroup(entry)) return true;
+
+  return MODULES[entry.key];
+});
+
+const ALL_ITEMS: NavItem[] = NAV_VISIBLE.flatMap((e) =>
+  isGroup(e) ? e.children : [e]
+);
+
 const ITEM_H = 44;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -129,6 +147,7 @@ function getActiveGroups(pathname: string): Set<string> {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function Sidebar() {
+
   const { data: session, status } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
   const pathname = usePathname();
@@ -326,7 +345,7 @@ export default function Sidebar() {
           </>
         ) : (
           <nav className="flex flex-col gap-0.5 p-2 flex-1 overflow-hidden">
-            {NAV
+            {NAV_VISIBLE
               .filter((entry) => {
                 if (
                   isGroup(entry) &&

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { useEffect, useState } from "react";
+import { Key, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface Ganho {
@@ -40,16 +40,32 @@ export default function GanhosUber() {
     >("month");
 
     const [selectedMonth, setSelectedMonth] =
-        useState("05-2026");
+        useState("");
 
     const [selectedYear, setSelectedYear] =
-        useState("2026");
+        useState(new Date().getFullYear().toString());
 
-    const [startDate, setStartDate] =
-        useState("2026-05-01");
+    const hoje = new Date();
 
-    const [endDate, setEndDate] =
-        useState("2026-05-25");
+    const primeiroDiaMes = new Date(
+        hoje.getFullYear(),
+        hoje.getMonth(),
+        1
+    );
+
+    const ultimoDiaMes = new Date(
+        hoje.getFullYear(),
+        hoje.getMonth() + 1,
+        0
+    );
+
+    const [startDate, setStartDate] = useState(
+        primeiroDiaMes.toISOString().split("T")[0]
+    );
+
+    const [endDate, setEndDate] = useState(
+        ultimoDiaMes.toISOString().split("T")[0]
+    );
 
     const [ganhos, setGanhos] = useState<Ganho[]>([]);
     const [loading, setLoading] = useState(true);
@@ -214,6 +230,72 @@ export default function GanhosUber() {
         },
     ];
 
+
+
+
+    const mesesDisponiveis = useMemo(() => {
+        const meses = new Set<string>();
+
+        ganhos.forEach((item) => {
+            const data = new Date(item.data);
+
+            const valor = `${String(
+                data.getUTCMonth() + 1
+            ).padStart(2, "0")}-${data.getUTCFullYear()}`;
+
+            meses.add(valor);
+        });
+
+        return Array.from(meses).sort((a, b) => {
+            const [mesA, anoA] = a.split("-");
+            const [mesB, anoB] = b.split("-");
+
+            return (
+                Number(anoB) * 100 +
+                Number(mesB) -
+                (Number(anoA) * 100 + Number(mesA))
+            );
+        });
+    }, [ganhos]);
+
+    const anosDisponiveis = useMemo(() => {
+        const anos = new Set<string>();
+
+        ganhos.forEach((item) => {
+            anos.add(
+                String(
+                    new Date(item.data).getUTCFullYear()
+                )
+            );
+        });
+
+        return Array.from(anos).sort(
+            (a, b) => Number(b) - Number(a)
+        );
+    }, [ganhos]);
+
+    useEffect(() => {
+        if (
+            mesesDisponiveis.length > 0 &&
+            selectedMonth === ""
+        ) {
+            setSelectedMonth(
+                mesesDisponiveis[0]
+            );
+        }
+    }, [mesesDisponiveis]);
+
+    useEffect(() => {
+        if (
+            anosDisponiveis.length > 0 &&
+            selectedYear === ""
+        ) {
+            setSelectedYear(
+                anosDisponiveis[0]
+            );
+        }
+    }, [anosDisponiveis]);
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -311,45 +393,48 @@ export default function GanhosUber() {
                         <select
                             value={selectedMonth}
                             onChange={(e) =>
-                                setSelectedMonth(
-                                    e.target.value
-                                )
+                                setSelectedMonth(e.target.value)
                             }
                             className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-900 focus:border-green-500 focus:outline-none"
                         >
-                            <option value="05-2026">
-                                Maio 2026
-                            </option>
+                            {mesesDisponiveis.map((mes) => {
+                                const [numeroMes, ano] = mes.split("-");
 
-                            <option value="04-2026">
-                                Abril 2026
-                            </option>
+                                const nomeMes = new Date(
+                                    Number(ano),
+                                    Number(numeroMes) - 1
+                                ).toLocaleDateString("pt-BR", {
+                                    month: "long",
+                                });
 
-                            <option value="03-2026">
-                                Março 2026
-                            </option>
+                                return (
+                                    <option
+                                        key={mes}
+                                        value={mes}
+                                    >
+                                        {nomeMes.charAt(0).toUpperCase() +
+                                            nomeMes.slice(1)}{" "}
+                                        {ano}
+                                    </option>
+                                );
+                            })}
                         </select>
                     ) : filterType === "year" ? (
                         <select
                             value={selectedYear}
                             onChange={(e) =>
-                                setSelectedYear(
-                                    e.target.value
-                                )
+                                setSelectedYear(e.target.value)
                             }
                             className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-900 focus:border-green-500 focus:outline-none"
                         >
-                            <option value="2026">
-                                2026
-                            </option>
-
-                            <option value="2025">
-                                2025
-                            </option>
-
-                            <option value="2024">
-                                2024
-                            </option>
+                            {anosDisponiveis.map((ano) => (
+                                <option
+                                    key={ano}
+                                    value={ano}
+                                >
+                                    {ano}
+                                </option>
+                            ))}
                         </select>
                     ) : (
                         <div className="flex flex-col gap-3 sm:flex-row">
@@ -357,22 +442,18 @@ export default function GanhosUber() {
                                 type="date"
                                 value={startDate}
                                 onChange={(e) =>
-                                    setStartDate(
-                                        e.target.value
-                                    )
+                                    setStartDate(e.target.value)
                                 }
-                                className="rounded-xl border border-slate-300 px-4 py-2 text-sm focus:border-green-500 focus:outline-none"
+                                className="rounded-xl border border-slate-300 px-4 py-2 text-sm"
                             />
 
                             <input
                                 type="date"
                                 value={endDate}
                                 onChange={(e) =>
-                                    setEndDate(
-                                        e.target.value
-                                    )
+                                    setEndDate(e.target.value)
                                 }
-                                className="rounded-xl border border-slate-300 px-4 py-2 text-sm focus:border-green-500 focus:outline-none"
+                                className="rounded-xl border border-slate-300 px-4 py-2 text-sm"
                             />
                         </div>
                     )}

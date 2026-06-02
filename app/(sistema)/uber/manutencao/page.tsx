@@ -15,7 +15,7 @@ import {
   Calendar,
   Car
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatDateBR } from "@/utils/formatDate";
 import {
   useRouter,
@@ -42,6 +42,11 @@ export default function ManutencaoUber() {
   const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+
+  const parseDate = (value: string) => {
+    const [y, m, d] = value.split("T")[0].split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
 
   /* =========================
     POPUP KM ATUAL
@@ -73,15 +78,49 @@ export default function ManutencaoUber() {
     "day" | "month" | "year"
   >("month");
 
-  const [selectedMonth, setSelectedMonth] = useState("05-2026");
-  const [selectedYear, setSelectedYear] = useState("2026");
-  const [startDate, setStartDate] = useState("2026-05-01");
-  const [endDate, setEndDate] = useState("2026-05-31");
+  const [selectedMonth, setSelectedMonth] =
+    useState("");
+
+  const [selectedYear, setSelectedYear] =
+    useState(new Date().getFullYear().toString());
+  const hoje = new Date();
+
+  const formatDateInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(
+      date.getMonth() + 1
+    ).padStart(2, "0");
+    const day = String(
+      date.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const [startDate, setStartDate] = useState(
+    formatDateInput(
+      new Date(
+        hoje.getFullYear(),
+        hoje.getMonth(),
+        1
+      )
+    )
+  );
+
+  const [endDate, setEndDate] = useState(
+    formatDateInput(
+      new Date(
+        hoje.getFullYear(),
+        hoje.getMonth() + 1,
+        0
+      )
+    )
+  );
 
   function abrirConfirmacao(manut: Manutencao) {
-  setManutSelecionada(manut);
-  setShowConfirmModal(true);
-}
+    setManutSelecionada(manut);
+    setShowConfirmModal(true);
+  }
 
   /* =========================================================
      BUSCAR DADOS DO BANCO
@@ -182,6 +221,40 @@ export default function ManutencaoUber() {
     }
   }
 
+  const mesesDisponiveis = useMemo<string[]>(() => {
+    const meses = new Set<string>();
+
+    manutencoes.forEach((item) => {
+      const data = parseDate(item.data);
+
+      const chave = `${String(
+        data.getMonth() + 1
+      ).padStart(2, "0")}-${data.getFullYear()}`;
+
+      meses.add(chave);
+    });
+
+    return Array.from(meses).sort((a, b) => {
+      const [mesA, anoA] = a.split("-");
+      const [mesB, anoB] = b.split("-");
+
+      return (
+        Number(anoB) * 100 +
+        Number(mesB) -
+        (Number(anoA) * 100 + Number(mesA))
+      );
+    });
+  }, [manutencoes]);
+
+  useEffect(() => {
+    if (
+      mesesDisponiveis.length > 0 &&
+      !selectedMonth
+    ) {
+      setSelectedMonth(mesesDisponiveis[0]);
+    }
+  }, [mesesDisponiveis, selectedMonth]);
+
   async function concluirManutencao(manut: Manutencao) {
     try {
       const response = await fetch(
@@ -224,7 +297,7 @@ export default function ManutencaoUber() {
   ========================================================= */
 
   const manutencoesFiltradas = manutencoes.filter((item) => {
-    const data = new Date(item.data);
+    const data = parseDate(item.data);
 
     if (filterType === "month") {
       const [mes, ano] = selectedMonth.split("-");
@@ -269,34 +342,32 @@ export default function ManutencaoUber() {
 
   // Calcular km máximo (atual) do carro
   const kmAtual = Number(kmAtualVeiculo || 0);
+
   const proximas = manutencoes.filter((m) => {
-    // IGNORA MANUTENÇÕES JÁ CONCLUÍDAS
     if (m.status === "Pendente") {
       return false;
     }
 
     const hoje = new Date();
-
     const umMesAFrente = new Date();
     umMesAFrente.setMonth(umMesAFrente.getMonth() + 1);
 
-    // DATA ATRASADA
+    const dataProxima = m.proximaData ? parseDate(m.proximaData) : null;
+
     const atrasoPorData =
-      m.proximaData &&
-      new Date(m.proximaData) < hoje;
+      dataProxima && dataProxima < hoje;
 
-    // DATA PRÓXIMA
     const alertaPorData =
-      m.proximaData &&
-      new Date(m.proximaData) >= hoje &&
-      new Date(m.proximaData) <= umMesAFrente;
+      dataProxima &&
+      dataProxima >= hoje &&
+      dataProxima <= umMesAFrente;
 
-    // KM ATRASADO
+    const kmAtual = Number(kmAtualVeiculo || 0);
+
     const atrasoPorKm =
       m.proximaKm &&
       kmAtual >= Number(m.proximaKm);
 
-    // KM PRÓXIMO
     const alertaPorKm =
       m.proximaKm &&
       Number(m.proximaKm) > kmAtual &&
@@ -310,20 +381,32 @@ export default function ManutencaoUber() {
     );
   });
 
+  function confirmarRealizacao() {
+    if (!manutSelecionada) return;
 
- function confirmarRealizacao() {
-  if (!manutSelecionada) return;
+    concluirManutencao(manutSelecionada)
+      .then(() => {
+        setShowConfirmModal(false);
+        setManutSelecionada(null);
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("Erro ao concluir manutenção");
+      });
+  }
 
-  concluirManutencao(manutSelecionada)
-    .then(() => {
-      setShowConfirmModal(false);
-      setManutSelecionada(null);
-    })
-    .catch((error) => {
-      console.error(error);
-      toast.error("Erro ao concluir manutenção");
+  const anosDisponiveis = useMemo<string[]>(() => {
+    const anos = new Set<string>();
+
+    manutencoes.forEach((item) => {
+      const data = parseDate(item.data);
+      anos.add(String(data.getFullYear()));
     });
-}
+
+    return Array.from(anos).sort(
+      (a, b) => Number(b) - Number(a)
+    );
+  }, [manutencoes]);
 
   return (
     <div className="space-y-6">
@@ -399,9 +482,27 @@ export default function ManutencaoUber() {
               onChange={(e) => setSelectedMonth(e.target.value)}
               className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
             >
-              <option value="05-2026">Maio 2026</option>
-              <option value="04-2026">Abril 2026</option>
-              <option value="03-2026">Março 2026</option>
+              {mesesDisponiveis.map((mes) => {
+                const [numeroMes, ano] = mes.split("-");
+
+                const nomeMes = new Date(
+                  Number(ano),
+                  Number(numeroMes) - 1
+                ).toLocaleDateString("pt-BR", {
+                  month: "long",
+                });
+
+                return (
+                  <option
+                    key={mes}
+                    value={mes}
+                  >
+                    {nomeMes.charAt(0).toUpperCase() +
+                      nomeMes.slice(1)}{" "}
+                    {ano}
+                  </option>
+                );
+              })}
             </select>
           ) : filterType === "year" ? (
             <select
@@ -409,9 +510,14 @@ export default function ManutencaoUber() {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
             >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
+              {anosDisponiveis.map((ano) => (
+                <option
+                  key={ano}
+                  value={ano}
+                >
+                  {ano}
+                </option>
+              ))}
             </select>
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -841,49 +947,49 @@ export default function ManutencaoUber() {
       )}
 
       {showConfirmModal && manutSelecionada && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 
-    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
 
-      <h2 className="text-lg font-semibold text-slate-900">
-        Confirmar manutenção
-      </h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Confirmar manutenção
+            </h2>
 
-      <p className="mt-2 text-sm text-slate-600">
-        Tem certeza que deseja marcar como realizada?
-      </p>
+            <p className="mt-2 text-sm text-slate-600">
+              Tem certeza que deseja marcar como realizada?
+            </p>
 
-      <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
-        <p className="text-sm font-medium text-slate-800">
-          {manutSelecionada.tipo}
-        </p>
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-medium text-slate-800">
+                {manutSelecionada.tipo}
+              </p>
 
-        <p className="text-xs text-slate-500 mt-1">
-          Essa ação irá remover este alerta da lista.
-        </p>
-      </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Essa ação irá remover este alerta da lista.
+              </p>
+            </div>
 
-      <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex justify-end gap-3">
 
-        <button
-          onClick={() => setShowConfirmModal(false)}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
-        >
-          Cancelar
-        </button>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+              >
+                Cancelar
+              </button>
 
-        <button
-          onClick={confirmarRealizacao}
-          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
-        >
-          Confirmar
-        </button>
+              <button
+                onClick={confirmarRealizacao}
+                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+              >
+                Confirmar
+              </button>
 
-      </div>
+            </div>
 
-    </div>
-  </div>
-)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

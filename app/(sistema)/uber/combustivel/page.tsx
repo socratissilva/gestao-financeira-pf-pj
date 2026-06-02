@@ -1,12 +1,11 @@
 "use client";
 
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import { Edit, Fuel, Plus, TrendingDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDateBR } from "@/utils/formatDate";
-import toast from "react-hot-toast";
 
 interface Abastecimento {
   _id: string;
@@ -19,14 +18,39 @@ interface Abastecimento {
 }
 
 export default function CombustivelUber() {
+
+  const parseDate = (value: string) => {
+    const [y, m, d] = value.split("T")[0].split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+
   const [combustivel, setCombustivel] =
     useState<Abastecimento[]>([]);
 
   const [filterType, setFilterType] = useState<"day" | "month" | "year">("month");
-  const [selectedMonth, setSelectedMonth] = useState("05-2026");
-  const [selectedYear, setSelectedYear] = useState("2026");
-  const [startDate, setStartDate] = useState("2026-05-01");
-  const [endDate, setEndDate] = useState("2026-05-31");
+  const [selectedMonth, setSelectedMonth] = useState("");
+
+  const [selectedYear, setSelectedYear] =
+    useState(new Date().getFullYear().toString());
+  const hoje = new Date();
+
+  const [startDate, setStartDate] = useState(
+    `${hoje.getFullYear()}-${String(
+      hoje.getMonth() + 1
+    ).padStart(2, "0")}-01`
+  );
+
+  const [endDate, setEndDate] = useState(() => {
+    const hoje = new Date();
+
+    const ultimoDia = new Date(
+      hoje.getFullYear(),
+      hoje.getMonth() + 1,
+      0
+    );
+
+    return ultimoDia.toISOString().split("T")[0];
+  });
 
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +61,8 @@ export default function CombustivelUber() {
   useEffect(() => {
     fetchAbastecimentos();
   }, []);
+
+
 
   async function fetchAbastecimentos() {
     try {
@@ -60,25 +86,27 @@ export default function CombustivelUber() {
   const router = useRouter();
 
   const combustivelFiltrado = combustivel.filter((item) => {
-    const data = new Date(item.data);
+    const data = parseDate(item.data);
 
     if (filterType === "month") {
       const [mes, ano] = selectedMonth.split("-");
       return (
-        data.getUTCMonth() + 1 === Number(mes) &&
-        data.getUTCFullYear() === Number(ano)
+        data.getMonth() + 1 === Number(mes) &&
+        data.getFullYear() === Number(ano)
       );
     }
 
     if (filterType === "year") {
-      return data.getUTCFullYear() === Number(selectedYear);
+      return data.getFullYear() === Number(selectedYear);
     }
 
     if (filterType === "day") {
       const inicio = new Date(startDate);
       const fim = new Date(endDate);
+
       inicio.setHours(0, 0, 0, 0);
       fim.setHours(23, 59, 59, 999);
+
       return data >= inicio && data <= fim;
     }
 
@@ -91,6 +119,52 @@ export default function CombustivelUber() {
     (acc, c) => acc + Number(c.km || 0),
     0
   );
+
+  const mesesDisponiveis = useMemo<string[]>(() => {
+    const meses = new Set<string>();
+
+    combustivel.forEach((item) => {
+      const data = parseDate(item.data);
+
+      const chave = `${String(
+        data.getMonth() + 1
+      ).padStart(2, "0")}-${data.getFullYear()}`;
+
+      meses.add(chave);
+    });
+
+    return Array.from(meses).sort((a, b) => {
+      const [mesA, anoA] = a.split("-");
+      const [mesB, anoB] = b.split("-");
+
+      return (
+        Number(anoB) * 100 +
+        Number(mesB) -
+        (Number(anoA) * 100 + Number(mesA))
+      );
+    });
+  }, [combustivel]);
+
+  const anosDisponiveis = useMemo<string[]>(() => {
+    const anos = new Set<string>();
+
+    combustivel.forEach((item) => {
+      const data = parseDate(item.data);
+      anos.add(String(data.getFullYear()));
+    });
+
+    return Array.from(anos).sort((a, b) => Number(b) - Number(a));
+  }, [combustivel]);
+
+  useEffect(() => {
+    if (
+      mesesDisponiveis.length > 0 &&
+      !selectedMonth
+    ) {
+      setSelectedMonth(mesesDisponiveis[0]);
+    }
+  }, [mesesDisponiveis, selectedMonth]);
+
 
   return (
     <div className="space-y-6">
@@ -105,7 +179,7 @@ export default function CombustivelUber() {
         </button>
       </div>
 
-      
+
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-wrap items-center gap-5">
@@ -152,9 +226,27 @@ export default function CombustivelUber() {
               onChange={(e) => setSelectedMonth(e.target.value)}
               className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none"
             >
-              <option value="05-2026">Maio 2026</option>
-              <option value="04-2026">Abril 2026</option>
-              <option value="03-2026">Março 2026</option>
+              {mesesDisponiveis.map((mes) => {
+                const [numeroMes, ano] = mes.split("-");
+
+                const nomeMes = new Date(
+                  Number(ano),
+                  Number(numeroMes) - 1
+                ).toLocaleDateString("pt-BR", {
+                  month: "long",
+                });
+
+                return (
+                  <option
+                    key={mes}
+                    value={mes}
+                  >
+                    {nomeMes.charAt(0).toUpperCase() +
+                      nomeMes.slice(1)}{" "}
+                    {ano}
+                  </option>
+                );
+              })}
             </select>
           ) : filterType === "year" ? (
             <select
@@ -162,9 +254,14 @@ export default function CombustivelUber() {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none"
             >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
+              {anosDisponiveis.map((ano) => (
+                <option
+                  key={ano}
+                  value={ano}
+                >
+                  {ano}
+                </option>
+              ))}
             </select>
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -241,32 +338,64 @@ export default function CombustivelUber() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {combustivelFiltrado.map((abast) => {
-                const dataFormatada = formatDateBR(abast.data);
-                return (
-                  <tr key={abast._id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 text-sm text-slate-900">{dataFormatada}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{abast.litros}L</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{abast.preco}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{abast.km} km</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{abast.consumo}</td>
-                    <td className="px-6 py-4 text-right text-sm font-semibold text-orange-600">
-                      R$ {abast.valor.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() =>
-                          router.push(`/uber/combustivel/${abast._id}`)
-                        }
-                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 p-2 transition hover:bg-slate-100"
-                        title="Editar abastecimento"
-                      >
-                        <Edit className="h-4 w-4 text-slate-600" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {combustivelFiltrado.length > 0 ? (
+                combustivelFiltrado.map((abast) => {
+                  const dataFormatada = formatDateBR(abast.data);
+
+                  return (
+                    <tr key={abast._id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4 text-sm text-slate-900">
+                        {dataFormatada}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {abast.litros}L
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        R$ {(abast.valor / abast.litros).toFixed(2)}/L
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {Number(abast.km).toLocaleString("pt-BR")} km
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {abast.consumo}
+                      </td>
+
+                      <td className="px-6 py-4 text-right text-sm font-semibold text-orange-600">
+                        R${" "}
+                        {Number(abast.valor).toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() =>
+                            router.push(`/uber/combustivel/${abast._id}`)
+                          }
+                          className="inline-flex items-center justify-center rounded-lg border border-slate-300 p-2 transition hover:bg-slate-100"
+                          title="Editar abastecimento"
+                        >
+                          <Edit className="h-4 w-4 text-slate-600" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-6 py-10 text-center text-sm text-slate-500"
+                  >
+                    Nenhum abastecimento encontrado para o período selecionado.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

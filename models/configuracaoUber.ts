@@ -1,3 +1,4 @@
+//models/configuracaoUber.ts
 import mongoose, { Schema } from "mongoose";
 
 const configuracaoUberSchema = new Schema(

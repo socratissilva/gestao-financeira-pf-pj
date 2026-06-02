@@ -104,6 +104,13 @@ export async function PUT(
 
     const body = await req.json();
 
+    const litros = Number(body.litros);
+    const valor = Number(body.valor);
+    const km = Number(body.km);
+
+    const precoUnitario = (valor / litros).toFixed(2);
+    const consumoMedio = (km / litros).toFixed(1);
+
     const abastecimento =
       await AbastecimentoUber.findOneAndUpdate(
         {
@@ -112,11 +119,12 @@ export async function PUT(
         },
         {
           data: new Date(body.data),
-          litros: Number(body.litros),
-          km: Number(body.km),
-          valor: Number(body.valor),
-          preco: body.preco,
-          consumo: body.consumo,
+          litros,
+          km,
+          valor,
+
+          preco: `R$ ${precoUnitario}/L`,
+          consumo: `${consumoMedio} km/L`,
         },
         {
           new: true,
