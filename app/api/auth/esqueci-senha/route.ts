@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
     const user = await User.findOne({
       email: email,
-    }).lean();
+    });
 
     // 🔒 segurança: não revelar se existe ou não
     if (!user) {
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
     await user.save();
 
-    const userCheck = await User.findById(user._id);
+    // const userCheck = await User.findById(user._id);
 
     await sendResetPasswordEmail(user.email, resetToken);
 

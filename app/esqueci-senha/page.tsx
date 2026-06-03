@@ -45,7 +45,7 @@ export default function EsqueciSenhaPage() {
         <div style={styles.logoContainer}>
           <div style={styles.logoWrapper}>
             <Image 
-              src="/img/logoPadrao.png" 
+              src="/img/logoPadrao.PNG" 
               alt="Logo da Empresa" 
               width={250} 
               height={100}  

@@ -14,6 +14,8 @@ export async function POST(req: Request) {
   try {
     const { token, password } = await req.json();
 
+    await connectMongoDB();
+
     const hashedToken = crypto
       .createHash("sha256")
       .update(token)
@@ -24,8 +26,7 @@ export async function POST(req: Request) {
       resetPasswordExpire: {
         $gt: new Date(),
       },
-    }).lean();
-
+    });
 
     if (!user) {
       return NextResponse.json(
