@@ -57,7 +57,7 @@ const MODULES = {
   financeiro: true,
   investimentos: false,
   organizacao: false,
-  cadastro: false,
+  cadastro: true,
 };
 
 
