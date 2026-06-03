@@ -54,7 +54,7 @@ function isGroup(e: NavEntry): e is NavGroup { return "group" in e; }
 // ── Navegação ─────────────────────────────────────────────────────────────────
 const MODULES = {
   uber: true,
-  financeiro: false,
+  financeiro: true,
   investimentos: false,
   organizacao: false,
   cadastro: false,
