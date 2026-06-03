@@ -49,4 +49,4 @@ const GanhoUberSchema = new Schema(
 const GanhoUber =
   models.GanhoUber || model("GanhoUber", GanhoUberSchema);
 
-export default GanhoUber;
+export default GanhoUber as mongoose.Model<any>;

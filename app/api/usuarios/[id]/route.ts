@@ -4,6 +4,7 @@ import User from '@/models/User';
 import { AuthOptions, getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
+import email from 'next-auth/providers/email';
 
 async function getSession(authOptions: AuthOptions) {
     return getServerSession(authOptions);
@@ -118,8 +119,10 @@ export async function PUT(
         }
 
         if (body.email && body.email !== usuario.email) {
-            const existing = await User.findOne({ email: body.email });
-            if (existing) {
+            const user = await User.findOne({
+                email: email,
+            }).lean();
+            if (user) {
                 return NextResponse.json(
                     { message: 'Já existe um usuário com este e-mail.' },
                     { status: 409 }

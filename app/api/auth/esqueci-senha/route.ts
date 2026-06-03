@@ -14,7 +14,9 @@ export async function POST(req: Request) {
 
     await connectDB();
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email: email,
+    }).lean();
 
     // 🔒 segurança: não revelar se existe ou não
     if (!user) {

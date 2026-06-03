@@ -73,9 +73,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const usuarioExistente = await User.findOne({ email });
+    const user = await User.findOne({
+      email: email,
+    }).lean();
 
-    if (usuarioExistente) {
+    if (user) {
       return NextResponse.json(
         {
           message: "Já existe usuário com este e-mail",

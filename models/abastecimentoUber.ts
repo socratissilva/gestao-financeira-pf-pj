@@ -4,11 +4,11 @@ import mongoose, { Schema, models, model } from "mongoose";
 const AbastecimentoUberSchema = new Schema(
   {
     userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
-  
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
     data: {
       type: Date,
       required: true,
@@ -45,6 +45,7 @@ const AbastecimentoUberSchema = new Schema(
 );
 
 const AbastecimentoUber =
-  models.AbastecimentoUber || model("AbastecimentoUber", AbastecimentoUberSchema);
+  models.AbastecimentoUber ||
+  model("AbastecimentoUber", AbastecimentoUberSchema);
 
-export default AbastecimentoUber;
+export default AbastecimentoUber as mongoose.Model<any>;

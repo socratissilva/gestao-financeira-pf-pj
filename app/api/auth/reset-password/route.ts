@@ -21,8 +21,10 @@ export async function POST(req: Request) {
 
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
-      resetPasswordExpire: { $gt: Date.now() },
-    });
+      resetPasswordExpire: {
+        $gt: new Date(),
+      },
+    }).lean();
 
 
     if (!user) {

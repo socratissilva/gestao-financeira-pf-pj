@@ -40,7 +40,7 @@ async function createAdmin() {
     const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
 
     // Verifica se o admin@email.com já existe na base
-    const existingUser = await User.findOne({
+    const existingUser = await (User as any).findOne({
       email: "admin@email.com",
     });
 

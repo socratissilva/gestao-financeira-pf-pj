@@ -1,3 +1,4 @@
+// models/User.ts
 import mongoose, { Schema, models } from "mongoose";
 
 const UserSchema = new mongoose.Schema(
@@ -43,8 +44,14 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-const User = models.User || mongoose.model("User", UserSchema);
+const User =
+  models.User ||
+  mongoose.model("User", UserSchema);
 
-export default User;
+export default User as mongoose.Model<any>;
+
+// const User = models.User || mongoose.model("User", UserSchema);
+
+// export default User;
 
 

@@ -1,7 +1,7 @@
+//app/(sistema)/uber/manutencao/page.tsx
 "use client";
 
-export const dynamic = "force-dynamic";
-
+import { Suspense } from "react";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import {
   Wrench,
@@ -23,6 +23,7 @@ import {
   useRouter,
   useSearchParams
 } from "next/navigation";
+
 import toast from "react-hot-toast";
 
 interface Manutencao {
@@ -37,9 +38,10 @@ interface Manutencao {
   proximaKm?: number | null;
 }
 
-export default function ManutencaoUber() {
+function ManutencaoUberPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
 
   const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -993,5 +995,19 @@ export default function ManutencaoUber() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ManutencaoUber() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-6 text-center">
+          Carregando...
+        </div>
+      }
+    >
+      <ManutencaoUberPageContent />
+    </Suspense>
   );
 }

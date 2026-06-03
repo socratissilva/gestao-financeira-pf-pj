@@ -20,8 +20,11 @@ const configuracaoUberSchema = new Schema(
   }
 );
 
-export default mongoose.models.ConfiguracaoUber ||
+const ConfiguracaoUber =
+  mongoose.models.ConfiguracaoUber ||
   mongoose.model(
     "ConfiguracaoUber",
     configuracaoUberSchema
   );
+
+export default ConfiguracaoUber as mongoose.Model<any>;

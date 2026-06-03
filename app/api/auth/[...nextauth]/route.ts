@@ -17,7 +17,11 @@ const authOptions = {
 
         const { email, password, rememberMe } = credentials;
 
-        const user = await User.findOne({ email });
+        // const user = await User.findOne({ email });
+
+        const user = await User.findOne({
+          email: email,
+        }).lean();
 
         if (!user) return null;
 

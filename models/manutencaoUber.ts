@@ -56,5 +56,8 @@ const manutencaoSchema = new Schema(
   }
 );
 
-export default mongoose.models.ManutencaoUber ||
+const ManutencaoUber =
+  mongoose.models.ManutencaoUber ||
   mongoose.model("ManutencaoUber", manutencaoSchema);
+
+export default ManutencaoUber as mongoose.Model<any>;
