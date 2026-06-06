@@ -1,3 +1,35 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+
+export default function Page() {
+  const router = useRouter();
+
+  return (
+    <div style={{ padding: 24 }}>
+      <h1>Receitas (TESTE)</h1>
+
+      <button
+        onClick={() => router.push("/financeiro/receitas/novo")}
+        style={{
+          marginTop: 20,
+          padding: "10px 16px",
+          background: "green",
+          color: "white",
+          borderRadius: 8,
+          border: "none",
+          cursor: "pointer",
+        }}
+      >
+        Nova Receita
+      </button>
+    </div>
+  );
+}
+
+
+
+
 // // app/(sistema)/financeiro/receitas/page.tsx
 // "use client";
 
