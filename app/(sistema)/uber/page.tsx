@@ -392,6 +392,41 @@ export default function UberOverview() {
             ? (lucroLiquido / totalGanhos) * 100
             : 0;
 
+    const percentualCombustivel =
+        totalGanhos > 0
+            ? (totalCombustivel / totalGanhos) * 100
+            : 0;
+
+    const percentualManutencao =
+        totalGanhos > 0
+            ? (totalManutencao / totalGanhos) * 100
+            : 0;
+
+    const scoreSaude = Math.round(
+        margemLucro * 0.4 +
+        (100 - percentualCombustivel) * 0.3 +
+        (100 - percentualManutencao) * 0.2 +
+        Math.min((ganhoPorHora / 50) * 100, 100) * 0.1
+    );
+
+    const classificacaoSaude =
+        scoreSaude >= 90
+            ? "Excelente"
+            : scoreSaude >= 75
+                ? "Muito Boa"
+                : scoreSaude >= 60
+                    ? "Boa"
+                    : scoreSaude >= 40
+                        ? "Regular"
+                        : "Crítica";
+
+    const corSaude =
+        scoreSaude >= 75
+            ? "text-green-700"
+            : scoreSaude >= 50
+                ? "text-yellow-600"
+                : "text-red-600";
+
     const chartData = useMemo(() => {
         const meses: Record<
             string,
@@ -501,9 +536,9 @@ export default function UberOverview() {
         },
         {
             label: "Saúde Financeira",
-            value: "87/100 Excelente",
+            value: `${scoreSaude}/100 ${classificacaoSaude}`,
             icon: Target,
-            color: "text-green-700",
+            color: corSaude,
             badge: true,
         },
     ];
@@ -857,6 +892,7 @@ export default function UberOverview() {
 
                         <div className="rounded-lg bg-green-50 p-4">
                             Lucro líquido atual: {formatMoney(lucroLiquido)}
+                            Saúde financeira: {scoreSaude}/100 ({classificacaoSaude})
                         </div>
 
                         <div className="rounded-lg bg-orange-50 p-4">
