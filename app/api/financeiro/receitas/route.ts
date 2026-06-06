@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import Receita from "@/models/receita";
+import Receita from "@/models/Receita";
 
 export const runtime = "nodejs";
 
