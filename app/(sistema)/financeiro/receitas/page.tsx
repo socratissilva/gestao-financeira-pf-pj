@@ -1,3 +1,4 @@
+// app/(sistema)/financeiro/receitas/page.tsx
 "use client";
 
 import PageHeader from "@/components/PageHeader/PageHeader";

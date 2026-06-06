@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import Receita from "@/models/Receita";
+import Receita from "@/models/receita";
 
 export const runtime = "nodejs";
 
@@ -27,20 +27,18 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    // 🔥 CONVERSÃO MES/ANO → DATE (OBRIGATÓRIO)
     const [mes, ano] = body.mesAno.split("-");
-
     const data = new Date(Number(ano), Number(mes) - 1, 1);
 
     const dataFim =
       body.recorrente && body.mesAnoFim
         ? (() => {
-              const [m, a] = body.mesAnoFim.split("-");
-              return new Date(Number(a), Number(m) - 1, 1);
+            const [m, a] = body.mesAnoFim.split("-");
+            return new Date(Number(a), Number(m) - 1, 1);
           })()
         : null;
 
-    const receita = await Receita.create({
+    const novaReceita = await Receita.create({
       data,
       categoria: body.categoria,
       valor: body.valor,
@@ -53,7 +51,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         message: "Receita cadastrada com sucesso",
-        receita,
+        receita: novaReceita,
       },
       { status: 201 }
     );
