@@ -89,7 +89,7 @@ export default function NovoGanho() {
         if (!validateForm()) return;
 
         try {
-            const response = await fetch("/api/financeiro/receitas", {
+            const response = await fetch("/api/financeiro/receitas-previstas", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -116,7 +116,7 @@ export default function NovoGanho() {
             toast.success("Receita cadastrada com sucesso!");
 
             setTimeout(() => {
-                router.push("/financeiro/receitas");
+                router.push("/financeiro/receitas-previstas");
             }, 1500);
         } catch (error) {
             console.error(error);
@@ -130,12 +130,12 @@ export default function NovoGanho() {
             {/* HEADER (MANTIDO IGUAL) */}
             <div className="flex items-start justify-between gap-4">
                 <PageHeader
-                    title="Nova Receita"
-                    description="Cadastre receitas reais ou recorrentes do seu planejamento financeiro"
+                    title="Provisionar Receita"
+                    description="Cadastre receitas provisionadas do seu planejamento financeiro"
                 />
 
                 <Link
-                    href="/financeiro/receitas"
+                    href="/financeiro/receitas-previstas"
                     className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
                 >
                     <ChevronLeft className="h-4 w-4" />
