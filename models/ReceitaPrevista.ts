@@ -1,14 +1,32 @@
-// models/ReceitaPrevista.ts
+import { Schema, model, models, Model, Document } from "mongoose";
 
-import { Schema, model, models } from "mongoose";
+/* =========================
+   TIPAGEM
+========================= */
+export interface IReceitaPrevista extends Document {
+  userId: string;
+  mesAno: Date;
+  categoria: string;
+  valor: number;
+  observacao: string;
+  recorrente: boolean;
+  mesAnoFim: Date | null;
+}
 
-const ReceitaPrevistaSchema = new Schema(
+/* =========================
+   SCHEMA
+========================= */
+const ReceitaPrevistaSchema = new Schema<IReceitaPrevista>(
   {
+    userId: {
+      type: String,
+      required: true,
+      index: true,
+    },
     mesAno: {
       type: Date,
       required: true,
     },
-
     categoria: {
       type: String,
       required: true,
@@ -22,23 +40,19 @@ const ReceitaPrevistaSchema = new Schema(
         "OUTROS",
       ],
     },
-
     valor: {
       type: Number,
       required: true,
       min: 0,
     },
-
     observacao: {
       type: String,
       default: "",
     },
-
     recorrente: {
       type: Boolean,
       default: false,
     },
-
     mesAnoFim: {
       type: Date,
       default: null,
@@ -49,9 +63,12 @@ const ReceitaPrevistaSchema = new Schema(
   }
 );
 
+/* =========================
+   MODEL
+========================= */
 const ReceitaPrevista =
-  models.ReceitaPrevista ||
-  model(
+  (models.ReceitaPrevista as Model<IReceitaPrevista>) ||
+  model<IReceitaPrevista>(
     "ReceitaPrevista",
     ReceitaPrevistaSchema,
     "receitas_previstas"

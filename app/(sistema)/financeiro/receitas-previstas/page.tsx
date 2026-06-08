@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import { Edit, Plus, TrendingUp } from "lucide-react";
+import { CATEGORIAS_LABEL } from "@/constants/categorias";
 
 export default function ReceitasPage() {
 
@@ -44,13 +45,11 @@ export default function ReceitasPage() {
 
   async function carregarReceitas() {
     try {
-      const response = await fetch(
-        "/api/financeiro/receitas-previstas"
-      );
+      const response = await fetch("/api/financeiro/receitas-previstas");
 
       const data = await response.json();
 
-      setReceitas(data);
+      setReceitas(data.receitas_previstas || []);
 
     } catch (error) {
       console.error(error);
@@ -63,34 +62,26 @@ export default function ReceitasPage() {
     const resultado: any[] = [];
 
     receitas.forEach((receita) => {
-
-      if (
-        !receita.recorrente ||
-        !receita.mesAnoFim
-      ) {
+      if (!receita.recorrente || !receita.mesAnoFim) {
         resultado.push({
           ...receita,
           dataProjecao: receita.mesAno,
+          origemId: receita._id,
         });
 
         return;
       }
 
-      const inicio = new Date(
-        receita.dataProjecao || receita.mesAno
-      );
+      const inicio = new Date(receita.mesAno);
       const fim = new Date(receita.mesAnoFim);
 
       let atual = new Date(inicio);
 
       while (atual <= fim) {
-
         resultado.push({
           ...receita,
-
           dataProjecao: new Date(atual),
-
-          _id: `${receita._id}-${atual.getUTCFullYear()}-${atual.getUTCMonth()}`
+          origemId: receita._id, // 👈 ESSENCIAL
         });
 
         atual = new Date(
@@ -463,7 +454,7 @@ export default function ReceitasPage() {
               </th>
 
               <th className="px-4 py-3 text-left text-sm">
-                Observação
+                Descrição
               </th>
 
               <th className="px-4 py-3 text-center text-sm">
@@ -520,9 +511,7 @@ export default function ReceitasPage() {
                     {receitasMes.map(
                       (receita) => (
                         <tr
-                          key={
-                            receita._id
-                          }
+                          key={`${receita.origemId}-${receita.dataProjecao}`}
                           className="border-t"
                         >
                           <td className="px-4 py-3">
@@ -539,9 +528,9 @@ export default function ReceitasPage() {
                           </td>
 
                           <td className="px-4 py-3">
-                            {
-                              receita.categoria
-                            }
+
+                            {CATEGORIAS_LABEL[receita.categoria] ?? receita.categoria}
+
                           </td>
 
                           <td className="px-4 py-3 font-semibold text-green-600">
@@ -572,7 +561,7 @@ export default function ReceitasPage() {
 
                           <td className="px-4 py-3 text-center">
                             <Link
-                              href={`/financeiro/receitas/${receita._id}`}
+                              href={`/financeiro/receitas-previstas/${receita.origemId}`}
                             >
                               <Edit className="mx-auto h-4 w-4 text-slate-600" />
                             </Link>

@@ -1,14 +1,13 @@
-//app/(sistema)/financeiro/receitas/novo/page.tsx
+// app/(sistema)/financeiro/receitas-previstas/[id]/page.tsx
 "use client";
 
 import PageHeader from "@/components/PageHeader/PageHeader";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, Save } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { CATEGORIAS } from "@/constants/categorias";
-
 
 interface FormData {
     mesAno: string;
@@ -16,115 +15,104 @@ interface FormData {
     valor: string;
     observacao: string;
     recorrente: boolean;
-    mesAnoFim: string; // ✅ ALTERADO (era data)
+    mesAnoFim: string;
 }
 
-export default function NovoGanho() {
-    const hoje = new Date();
-
-    const mesAtual = String(hoje.getMonth() + 1).padStart(2, "0");
-    const anoAtual = hoje.getFullYear().toString();
-
-    const [formData, setFormData] = useState<FormData>({
-        mesAno: `${mesAtual}-${anoAtual}`,
-        categoria: "RENDA_1",
-        valor: "",
-        observacao: "",
-        recorrente: false,
-        mesAnoFim: "",
-    });
-
-    const [errors, setErrors] = useState<Partial<FormData>>({});
+export default function EditarReceita() {
+    const { id } = useParams();
     const router = useRouter();
 
+    const [formData, setFormData] = useState<FormData | null>(null);
+    const [errors, setErrors] = useState<Partial<FormData>>({});
+
+    /* =========================
+       CARREGAR DADOS
+    ========================= */
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res = await fetch(
+                    `/api/financeiro/receitas-previstas/${id}`
+                );
+
+                const data = await res.json();
+
+                setFormData({
+                    mesAno: data.receita.mesAno?.slice(0, 7),
+                    categoria: data.receita.categoria,
+                    valor: String(data.receita.valor),
+                    observacao: data.receita.observacao || "",
+                    recorrente: data.receita.recorrente,
+                    mesAnoFim: data.receita.mesAnoFim
+                        ? data.receita.mesAnoFim.slice(0, 7)
+                        : "",
+                });
+            } catch {
+                toast.error("Erro ao carregar receita");
+            }
+        };
+
+        fetchData();
+    }, [id]);
+
+    /* =========================
+       HANDLER
+    ========================= */
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+        e: React.ChangeEvent<
+            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
     ) => {
         const { name, value, type } = e.target;
 
-        setFormData((prev) => ({
-            ...prev,
-            [name]:
-                type === "checkbox"
-                    ? (e.target as HTMLInputElement).checked
-                    : value,
-        }));
+        setFormData((prev) => {
+            if (!prev) return prev;
 
-        if (errors[name as keyof FormData]) {
-            setErrors((prev) => ({
+            return {
                 ...prev,
-                [name]: "",
-            }));
-        }
+                [name]:
+                    type === "checkbox"
+                        ? (e.target as HTMLInputElement).checked
+                        : value,
+            };
+        });
     };
 
-    const validateForm = (): boolean => {
-        const newErrors: Partial<FormData> = {};
-
-        if (!formData.mesAno) {
-            newErrors.mesAno = "Mês/Ano é obrigatório";
-        }
-
-        if (!formData.categoria) {
-            newErrors.categoria = "Categoria é obrigatória";
-        }
-
-        if (!formData.valor) {
-            newErrors.valor = "Valor é obrigatório";
-        } else if (Number(formData.valor) <= 0) {
-            newErrors.valor = "Valor deve ser maior que zero";
-        }
-
-        // ✅ recorrência agora é mês/ano também
-        if (formData.recorrente && !formData.mesAnoFim) {
-            newErrors.mesAnoFim = "Informe o mês/ano final da recorrência";
-        }
-
-        setErrors(newErrors);
-
-        return Object.keys(newErrors).length === 0;
-    };
-
+    /* =========================
+       SALVAR
+    ========================= */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!validateForm()) return;
-
         try {
-            const response = await fetch("/api/financeiro/receitas-previstas", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    mesAno: formData.mesAno,
-                    categoria: formData.categoria,
-                    valor: Number(formData.valor),
-                    observacao: formData.observacao,
+            const res = await fetch(
+                `/api/financeiro/receitas-previstas/${id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        ...formData,
+                        valor: Number(formData?.valor),
+                        mesAnoFim: formData?.recorrente
+                            ? formData.mesAnoFim
+                            : null,
+                    }),
+                }
+            );
 
-                    recorrente: formData.recorrente,
+            if (!res.ok) throw new Error();
 
-                    // ✅ agora também mês/ano
-                    mesAnoFim: formData.recorrente ? formData.mesAnoFim : null,
-                }),
-            });
+            toast.success("Receita atualizada com sucesso!");
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message);
-            }
-
-            toast.success("Receita cadastrada com sucesso!");
-
-            setTimeout(() => {
-                router.push("/financeiro/receitas-previstas");
-            }, 1500);
-        } catch (error) {
-            console.error(error);
-            toast.error("Erro ao cadastrar receita");
+            router.push("/financeiro/receitas-previstas");
+        } catch {
+            toast.error("Erro ao atualizar receita");
         }
     };
+
+    if (!formData) return <div>Carregando...</div>;
 
     return (
         <div className="space-y-6">
@@ -132,8 +120,8 @@ export default function NovoGanho() {
             {/* HEADER (MANTIDO IGUAL) */}
             <div className="flex items-start justify-between gap-4">
                 <PageHeader
-                    title="Provisionar Receita"
-                    description="Cadastre receitas provisionadas do seu planejamento financeiro"
+                    title="Editar Receita"
+                    description="Altere os dados da receita provisionada"
                 />
 
                 <Link
@@ -308,7 +296,7 @@ export default function NovoGanho() {
                             className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700"
                         >
                             <Save className="h-4 w-4" />
-                            Salvar Receita
+                            Atualizar Receita
                         </button>
                     </div>
 

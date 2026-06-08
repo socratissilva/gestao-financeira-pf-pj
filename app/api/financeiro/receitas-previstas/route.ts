@@ -1,81 +1,127 @@
-// api/financeiro/receitas_previstas/route.ts
+//app/api/financeiro/receitas-previstas/route.ts
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import ReceitaPrevista from "@/models/ReceitaPrevista";
 
 export const runtime = "nodejs";
 
 /* =========================
-   GET - listar receitas
+   GET
 ========================= */
 export async function GET() {
-    try {
-        await connectDB();
+  try {
+    await connectDB();
 
-        const receitas_previstas = await ReceitaPrevista.find().sort({ mesAno: -1 });
+    const session = await getServerSession(authOptions);
 
-        return NextResponse.json(receitas_previstas, { status: 200 });
-    } catch (error) {
-        console.error("GET receitas error:", error);
-
-        return NextResponse.json(
-            { message: "Erro ao buscar receitas" },
-            { status: 500 }
-        );
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Usuário não autenticado",
+        },
+        {
+          status: 401,
+        }
+      );
     }
+
+    const receitas_previstas = await ReceitaPrevista.find({
+      userId: session.user.id,
+    }).sort({
+      mesAno: -1,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        receitas_previstas,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Erro ao buscar receitas",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }
 
 /* =========================
-   POST - criar receita
+   POST
 ========================= */
 export async function POST(req: Request) {
-    try {
-        await connectDB();
+  try {
+    await connectDB();
 
-        const body = await req.json();
+    const session = await getServerSession(authOptions);
 
-        const { mesAno, categoria, valor, observacao, recorrente, mesAnoFim } =
-            body;
-
-        // 🔒 validações básicas
-        if (!mesAno) {
-            return NextResponse.json(
-                { message: "mesAno é obrigatório" },
-                { status: 400 }
-            );
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Usuário não autenticado",
+        },
+        {
+          status: 401,
         }
-
-        if (!categoria) {
-            return NextResponse.json(
-                { message: "categoria é obrigatória" },
-                { status: 400 }
-            );
-        }
-
-        if (!valor || Number(valor) <= 0) {
-            return NextResponse.json(
-                { message: "valor inválido" },
-                { status: 400 }
-            );
-        }
-
-        // 📌 criação
-        const receita = await ReceitaPrevista.create({
-            mesAno,
-            categoria,
-            valor: Number(valor),
-            observacao: observacao || "",
-            recorrente: !!recorrente,
-            mesAnoFim: mesAnoFim || null,
-        });
-
-        return NextResponse.json(receita, { status: 201 });
-    } catch (error) {
-        console.error("POST receita error:", error);
-
-        return NextResponse.json(
-            { message: "Erro ao criar receita" },
-            { status: 500 }
-        );
+      );
     }
+
+    const body = await req.json();
+
+    const {
+      mesAno,
+      categoria,
+      valor,
+      observacao,
+      recorrente,
+      mesAnoFim,
+    } = body;
+
+    const receita = await ReceitaPrevista.create({
+      mesAno,
+      categoria,
+      valor: Number(valor),
+      observacao: observacao || "",
+      recorrente: !!recorrente,
+      mesAnoFim: mesAnoFim || null,
+
+      userId: session.user.id,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        receita,
+      },
+      {
+        status: 201,
+      }
+    );
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Erro ao criar receita",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }
