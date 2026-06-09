@@ -1,13 +1,14 @@
 
-
+//app/%28sistema%29/financeiro/receitas-previstas/page.tsx
 "use client";
 
 import { Fragment } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader/PageHeader";
-import { Edit, Plus, TrendingUp } from "lucide-react";
+import { Edit, Plus, TrendingUp, Trash2 } from "lucide-react";
 import { CATEGORIAS_LABEL } from "@/constants/categorias";
+import toast from "react-hot-toast";
 
 export default function ReceitasPage() {
 
@@ -55,6 +56,67 @@ export default function ReceitasPage() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function excluirReceita(id: string) {
+    toast((t) => (
+      <div className="flex min-w-[280px] flex-col gap-3">
+        <p className="font-medium text-slate-900">
+          Excluir receita provisionada?
+        </p>
+
+        <p className="text-sm text-slate-500">
+          Todas as projeções futuras vinculadas a esta receita também serão removidas.
+        </p>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+          >
+            Cancelar
+          </button>
+
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              await excluirReceitaConfirmado(id);
+            }}
+            className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+          >
+            Excluir
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 10000,
+    });
+  }
+
+  async function excluirReceitaConfirmado(id: string) {
+    try {
+      const response = await fetch(
+        `/api/financeiro/receitas-previstas/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
+
+      toast.success("Receita excluída com sucesso!");
+
+      carregarReceitas();
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Erro ao excluir receita.");
     }
   }
 
@@ -560,11 +622,21 @@ export default function ReceitasPage() {
                           </td>
 
                           <td className="px-4 py-3 text-center">
-                            <Link
-                              href={`/financeiro/receitas-previstas/${receita.origemId}`}
-                            >
-                              <Edit className="mx-auto h-4 w-4 text-slate-600" />
-                            </Link>
+                            <div className="flex items-center justify-center gap-3">
+                              <Link
+                                href={`/financeiro/receitas-previstas/${receita.origemId}`}
+                                className="cursor-pointer"
+                              >
+                                <Edit className="h-4 w-4 text-slate-600 transition hover:scale-110 hover:text-green-600" />
+                              </Link>
+
+                              <button
+                                onClick={() => excluirReceita(receita.origemId)}
+                                className="cursor-pointer"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600 transition hover:scale-110 hover:text-red-700" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       )

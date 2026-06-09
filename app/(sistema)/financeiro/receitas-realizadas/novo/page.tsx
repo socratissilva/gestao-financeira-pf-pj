@@ -1,0 +1,258 @@
+//app/%28sistema%29/financeiro/receitas-realizadas/novo/page.tsx
+"use client";
+
+import PageHeader from "@/components/PageHeader/PageHeader";
+import { useState } from "react";
+import { ChevronLeft, Save } from "lucide-react";
+import Link from "next/link";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { CATEGORIAS } from "@/constants/categorias";
+import ReceitaRealizada from "@/models/ReceitaRealizada";
+
+interface FormData {
+    mesAno: string;
+    categoria: string;
+    valor: string;
+    observacao: string;
+}
+
+export default function NovoGanho() {
+    const hoje = new Date();
+
+    const mesAtual = String(hoje.getMonth() + 1).padStart(2, "0");
+    const anoAtual = hoje.getFullYear().toString();
+
+    const [formData, setFormData] = useState<FormData>({
+        mesAno: `${mesAtual}-${anoAtual}`,
+        categoria: "RENDA_1",
+        valor: "",
+        observacao: "",
+    });
+
+    const [errors, setErrors] = useState<Partial<FormData>>({});
+    const router = useRouter();
+
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    ) => {
+        const { name, value, type } = e.target;
+
+        setFormData((prev) => ({
+            ...prev,
+            [name]:
+                type === "checkbox"
+                    ? (e.target as HTMLInputElement).checked
+                    : value,
+        }));
+
+        if (errors[name as keyof FormData]) {
+            setErrors((prev) => ({
+                ...prev,
+                [name]: "",
+            }));
+        }
+    };
+
+    const validateForm = (): boolean => {
+        const newErrors: Partial<FormData> = {};
+
+        if (!formData.mesAno) {
+            newErrors.mesAno = "Mês/Ano é obrigatório";
+        }
+
+        if (!formData.categoria) {
+            newErrors.categoria = "Categoria é obrigatória";
+        }
+
+        if (!formData.valor) {
+            newErrors.valor = "Valor é obrigatório";
+        } else if (Number(formData.valor) <= 0) {
+            newErrors.valor = "Valor deve ser maior que zero";
+        }
+
+        setErrors(newErrors);
+
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!validateForm()) return;
+
+        try {
+            const response = await fetch("/api/financeiro/receitas-realizadas", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    mesAno: formData.mesAno,
+                    categoria: formData.categoria,
+                    valor: Number(formData.valor),
+                    observacao: formData.observacao,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message);
+            }
+
+            toast.success("Receita realizada registrada com sucesso!");
+
+            setTimeout(() => {
+                router.push("/financeiro/receitas-realizadas");
+            }, 1500);
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao cadastrar receita");
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+
+            {/* HEADER (MANTIDO IGUAL) */}
+            <div className="flex items-start justify-between gap-4">
+                <PageHeader
+                    title="Receita Realizada"
+                    description="Registre receitas efetivamente recebidas"
+                />
+
+
+                <Link
+                    href="/financeiro/receitas-realizadas"
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                    Voltar
+                </Link>
+            </div>
+
+            {/* FORM (MANTIDO LAYOUT ORIGINAL) */}
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+
+                <div className="border-b border-slate-200 px-6 py-4">
+                    <h2 className="text-lg font-semibold text-slate-900">
+                        Dados da Receita Recebida
+                    </h2>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6">
+
+                    <div className="space-y-6">
+
+                        {/* MÊS/ANO + CATEGORIA (mantido layout 2 colunas) */}
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+                            {/* MÊS/ANO */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">
+                                    Competência *
+                                </label>
+
+                                <input
+                                    type="month"
+                                    name="mesAno"
+                                    value={formData.mesAno}
+                                    onChange={handleChange}
+                                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                                />
+
+                                {errors.mesAno && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                        {errors.mesAno}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* CATEGORIA */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">
+                                    Categoria *
+                                </label>
+
+                                <select
+                                    name="categoria"
+                                    value={formData.categoria}
+                                    onChange={handleChange}
+                                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                                >
+                                    <option value="" disabled>
+                                        Selecione uma categoria
+                                    </option>
+
+                                    {CATEGORIAS.map((cat) => (
+                                        <option key={cat.value} value={cat.value}>
+                                            {cat.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* VALOR */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                                Valor *
+                            </label>
+
+                            <input
+                                type="number"
+                                name="valor"
+                                value={formData.valor}
+                                onChange={handleChange}
+                                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                            />
+
+                            {errors.valor && (
+                                <p className="mt-1 text-sm text-red-600">
+                                    {errors.valor}
+                                </p>
+                            )}
+                        </div>
+
+
+                        {/* OBSERVAÇÃO */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                                Descrição
+                            </label>
+
+                            <textarea
+                                name="observacao"
+                                value={formData.observacao}
+                                onChange={handleChange}
+                                rows={4}
+                                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    {/* BOTÕES (MANTIDO) */}
+                    <div className="mt-8 flex gap-4 border-t border-slate-200 pt-6">
+
+                        <Link
+                            href="/financeiro/receitas"
+                            className="rounded-lg border border-slate-300 px-6 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                            Cancelar
+                        </Link>
+
+                        <button
+                            type="submit"
+                            className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                            <Save className="h-4 w-4" />
+                            Salvar Recebimento
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    );
+}

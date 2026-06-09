@@ -128,3 +128,63 @@ export async function GET(
     );
   }
 }
+
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+
+    await connectDB();
+
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Não autenticado",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    const deleted = await ReceitaPrevista.findOneAndDelete({
+      _id: id,
+      userId: session.user.id,
+    });
+
+    if (!deleted) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Receita não encontrada",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Receita excluída com sucesso",
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Erro ao excluir receita",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
