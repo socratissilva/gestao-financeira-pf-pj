@@ -1,12 +1,15 @@
-//app/%28sistema%29/financeiro/receitas-realizadas/novo/page.tsx
+//app/(sistema)/financeiro/receitas-realizadas/[id]/page.tsx
 "use client";
 
 import PageHeader from "@/components/PageHeader/PageHeader";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, Save } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import {
+    useRouter,
+    useParams,
+} from "next/navigation";
 import { CATEGORIAS } from "@/constants/categorias-receitas";
 import ReceitaRealizada from "@/models/ReceitaRealizada";
 
@@ -32,6 +35,50 @@ export default function NovoGanho() {
 
     const [errors, setErrors] = useState<Partial<FormData>>({});
     const router = useRouter();
+
+    const params = useParams();
+
+    const id = params.id as string;
+
+    useEffect(() => {
+        if (id) {
+            carregarReceita();
+        }
+    }, [id]);
+
+    async function carregarReceita() {
+        try {
+            const response = await fetch(
+                `/api/financeiro/receitas-realizadas/${id}`
+            );
+
+            const data = await response.json();
+
+            const receita = data.receita;
+
+            setFormData({
+                mesAno: receita.mesAno
+                    ? new Date(receita.mesAno)
+                        .toISOString()
+                        .slice(0, 7)
+                    : "",
+
+                categoria: receita.categoria || "",
+
+                valor: String(receita.valor || ""),
+
+                observacao:
+                    receita.observacao || "",
+            });
+
+        } catch (error) {
+            console.error(error);
+
+            toast.error(
+                "Erro ao carregar receita"
+            );
+        }
+    }
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -82,18 +129,20 @@ export default function NovoGanho() {
         if (!validateForm()) return;
 
         try {
-            const response = await fetch("/api/financeiro/receitas-realizadas", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    mesAno: formData.mesAno,
-                    categoria: formData.categoria,
-                    valor: Number(formData.valor),
-                    observacao: formData.observacao,
-                }),
-            });
+            const response = await fetch(
+                `/api/financeiro/receitas-realizadas/${id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        mesAno: formData.mesAno,
+                        categoria: formData.categoria,
+                        valor: Number(formData.valor),
+                        observacao: formData.observacao,
+                    }),
+                });
 
             const data = await response.json();
 
@@ -101,14 +150,16 @@ export default function NovoGanho() {
                 throw new Error(data.message);
             }
 
-            toast.success("Receita realizada registrada com sucesso!");
+            toast.success(
+                "Receita atualizada com sucesso!"
+            );
 
             setTimeout(() => {
                 router.push("/financeiro/receitas-realizadas");
             }, 1500);
         } catch (error) {
             console.error(error);
-            toast.error("Erro ao cadastrar receita");
+            toast.error("Erro ao atualizar a receita");
         }
     };
 
@@ -118,8 +169,8 @@ export default function NovoGanho() {
             {/* HEADER (MANTIDO IGUAL) */}
             <div className="flex items-start justify-between gap-4">
                 <PageHeader
-                    title="Receita Realizada"
-                    description="Registre receitas efetivamente recebidas"
+                    title="Editar Receita"
+                    description="Atualize os dados da receita recebida"
                 />
 
 
@@ -137,7 +188,7 @@ export default function NovoGanho() {
 
                 <div className="border-b border-slate-200 px-6 py-4">
                     <h2 className="text-lg font-semibold text-slate-900">
-                        Dados da Receita Recebida
+                        Editar Receita Recebida
                     </h2>
                 </div>
 
@@ -236,7 +287,7 @@ export default function NovoGanho() {
                     <div className="mt-8 flex gap-4 border-t border-slate-200 pt-6">
 
                         <Link
-                            href="/financeiro/receitas"
+                            href="/financeiro/receitas-realizadas"
                             className="rounded-lg border border-slate-300 px-6 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                         >
                             Cancelar
@@ -247,7 +298,7 @@ export default function NovoGanho() {
                             className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700"
                         >
                             <Save className="h-4 w-4" />
-                            Salvar Recebimento
+                            Atualizar Receita
                         </button>
                     </div>
 

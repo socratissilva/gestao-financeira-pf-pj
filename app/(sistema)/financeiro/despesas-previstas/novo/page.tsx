@@ -1,4 +1,4 @@
-//app/%28sistema%29/financeiro/receitas-realizadas/novo/page.tsx
+//app/(sistema)/financeiro/despesas-previstas/novo/page.tsx
 "use client";
 
 import PageHeader from "@/components/PageHeader/PageHeader";
@@ -7,14 +7,17 @@ import { ChevronLeft, Save } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { CATEGORIAS } from "@/constants/categorias-receitas";
-import ReceitaRealizada from "@/models/ReceitaRealizada";
+import { CATEGORIAS_DESPESA }
+    from "@/constants/categorias-despesas";
+
 
 interface FormData {
     mesAno: string;
     categoria: string;
     valor: string;
     observacao: string;
+    recorrente: boolean;
+    mesAnoFim: string;
 }
 
 export default function NovoGanho() {
@@ -24,10 +27,12 @@ export default function NovoGanho() {
     const anoAtual = hoje.getFullYear().toString();
 
     const [formData, setFormData] = useState<FormData>({
-        mesAno: `${mesAtual}-${anoAtual}`,
-        categoria: "RENDA_1",
+        mesAno: `${anoAtual}-${mesAtual}`,
+        categoria: "MORADIA",
         valor: "",
         observacao: "",
+        recorrente: false,
+        mesAnoFim: "",
     });
 
     const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -71,6 +76,11 @@ export default function NovoGanho() {
             newErrors.valor = "Valor deve ser maior que zero";
         }
 
+        // ✅ recorrência agora é mês/ano também
+        if (formData.recorrente && !formData.mesAnoFim) {
+            newErrors.mesAnoFim = "Informe o mês/ano final da recorrência";
+        }
+
         setErrors(newErrors);
 
         return Object.keys(newErrors).length === 0;
@@ -82,7 +92,7 @@ export default function NovoGanho() {
         if (!validateForm()) return;
 
         try {
-            const response = await fetch("/api/financeiro/receitas-realizadas", {
+            const response = await fetch("/api/financeiro/despesas-previstas", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -92,6 +102,10 @@ export default function NovoGanho() {
                     categoria: formData.categoria,
                     valor: Number(formData.valor),
                     observacao: formData.observacao,
+                    recorrente: formData.recorrente,
+                    mesAnoFim: formData.recorrente
+                        ? formData.mesAnoFim
+                        : null,
                 }),
             });
 
@@ -101,14 +115,14 @@ export default function NovoGanho() {
                 throw new Error(data.message);
             }
 
-            toast.success("Receita realizada registrada com sucesso!");
+            toast.success("Despesa cadastrada com sucesso!");
 
             setTimeout(() => {
-                router.push("/financeiro/receitas-realizadas");
+                router.push("/financeiro/despesas-previstas");
             }, 1500);
         } catch (error) {
             console.error(error);
-            toast.error("Erro ao cadastrar receita");
+            toast.error("Erro ao cadastrar despesa");
         }
     };
 
@@ -118,13 +132,12 @@ export default function NovoGanho() {
             {/* HEADER (MANTIDO IGUAL) */}
             <div className="flex items-start justify-between gap-4">
                 <PageHeader
-                    title="Receita Realizada"
-                    description="Registre receitas efetivamente recebidas"
+                    title="Provisionar Despesa"
+                    description="Cadastre despesas provisionadas do seu planejamento financeiro"
                 />
 
-
                 <Link
-                    href="/financeiro/receitas-realizadas"
+                    href="/financeiro/despesas-previstas"
                     className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
                 >
                     <ChevronLeft className="h-4 w-4" />
@@ -137,7 +150,7 @@ export default function NovoGanho() {
 
                 <div className="border-b border-slate-200 px-6 py-4">
                     <h2 className="text-lg font-semibold text-slate-900">
-                        Dados da Receita Recebida
+                        Informações da Despesa
                     </h2>
                 </div>
 
@@ -151,7 +164,7 @@ export default function NovoGanho() {
                             {/* MÊS/ANO */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700">
-                                    Competência *
+                                    Mês / Ano *
                                 </label>
 
                                 <input
@@ -185,8 +198,11 @@ export default function NovoGanho() {
                                         Selecione uma categoria
                                     </option>
 
-                                    {CATEGORIAS.map((cat) => (
-                                        <option key={cat.value} value={cat.value}>
+                                    {CATEGORIAS_DESPESA.map((cat) => (
+                                        <option
+                                            key={cat.value}
+                                            value={cat.value}
+                                        >
                                             {cat.label}
                                         </option>
                                     ))}
@@ -197,7 +213,7 @@ export default function NovoGanho() {
                         {/* VALOR */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700">
-                                Valor *
+                                Valor Provisionado *
                             </label>
 
                             <input
@@ -215,6 +231,54 @@ export default function NovoGanho() {
                             )}
                         </div>
 
+                        {/* RECORRENTE */}
+                        <div className="rounded-xl border border-slate-200 p-4">
+
+                            <label className="flex items-center gap-3">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.recorrente}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            recorrente: e.target.checked,
+                                        }))
+                                    }
+                                />
+
+                                <span className="font-medium text-slate-700">
+                                    Despesa recorrente
+                                </span>
+                            </label>
+
+                            <p className="mt-2 text-sm text-slate-500">
+                                A recorrência será aplicada mês a mês.
+                            </p>
+
+                            {/* ✅ AGORA MÊS/ANO FINAL */}
+                            {formData.recorrente && (
+                                <div className="mt-4">
+
+                                    <label className="block text-sm font-medium text-slate-700">
+                                        Repetir até (Mês / Ano)
+                                    </label>
+
+                                    <input
+                                        type="month"
+                                        name="mesAnoFim"
+                                        value={formData.mesAnoFim}
+                                        onChange={handleChange}
+                                        className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                                    />
+
+                                    {errors.mesAnoFim && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                            {errors.mesAnoFim}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         {/* OBSERVAÇÃO */}
                         <div>
@@ -236,7 +300,7 @@ export default function NovoGanho() {
                     <div className="mt-8 flex gap-4 border-t border-slate-200 pt-6">
 
                         <Link
-                            href="/financeiro/receitas"
+                            href="/financeiro/despesas-previstas"
                             className="rounded-lg border border-slate-300 px-6 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                         >
                             Cancelar
@@ -247,7 +311,7 @@ export default function NovoGanho() {
                             className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700"
                         >
                             <Save className="h-4 w-4" />
-                            Salvar Recebimento
+                            Salvar Despesa
                         </button>
                     </div>
 

@@ -7,7 +7,7 @@ import { ChevronLeft, Save } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useRouter, useParams } from "next/navigation";
-import { CATEGORIAS } from "@/constants/categorias";
+import { CATEGORIAS } from "@/constants/categorias-receitas";
 
 interface FormData {
     mesAno: string;
@@ -223,12 +223,13 @@ export default function EditarReceita() {
                                 <input
                                     type="checkbox"
                                     checked={formData.recorrente}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            recorrente: e.target.checked,
-                                        }))
-                                    }
+                                    disabled
+                                    // onChange={(e) =>
+                                    //     setFormData((prev) => ({
+                                    //         ...prev,
+                                    //         recorrente: e.target.checked,
+                                    //     }))
+                                    // }
                                 />
 
                                 <span className="font-medium text-slate-700">

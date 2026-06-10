@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import { Edit, Plus, TrendingUp, Trash2 } from "lucide-react";
-import { CATEGORIAS_LABEL } from "@/constants/categorias";
+import { CATEGORIAS_LABEL } from "@/constants/categorias-receitas";
 import toast from "react-hot-toast";
 
 export default function ReceitasPage() {
