@@ -1,4 +1,4 @@
-//app/(sistema)/financeiro/despesas-previstas/novo/page.tsx
+//app/(sistema)/financeiro/despesas-previstas/[id]/page.tsx
 "use client";
 
 import PageHeader from "@/components/PageHeader/PageHeader";
@@ -8,6 +8,8 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { CARTOES } from "@/constants/cartoes";
+import { useParams } from "next/navigation";
+import { useEffect } from "react";
 import { CATEGORIAS_DESPESA }
     from "@/constants/categorias-despesas";
 
@@ -28,7 +30,10 @@ interface FormData {
     mesAnoFim: string;
 }
 
-export default function NovoGanho() {
+export default function EditarDespesaPage(){
+    const params = useParams();
+
+    const id = params.id as string;
     const hoje = new Date();
 
     const mesAtual = String(hoje.getMonth() + 1).padStart(2, "0");
@@ -48,6 +53,61 @@ export default function NovoGanho() {
 
     const [errors, setErrors] = useState<Partial<FormData>>({});
     const router = useRouter();
+
+    async function carregarDespesa() {
+        try {
+            const response = await fetch(
+                `/api/financeiro/despesas-previstas/${id}`
+            );
+
+            const data = await response.json();
+
+            const despesa = data.despesa;
+
+            setFormData({
+                mesAno: despesa.mesAno
+                    ? despesa.mesAno.slice(0, 7)
+                    : "",
+
+                categoria: despesa.categoria || "",
+
+                valor: String(despesa.valor || ""),
+
+                dataVencimento: despesa.dataVencimento
+                    ? despesa.dataVencimento.slice(0, 10)
+                    : "",
+
+                formaPagamento:
+                    despesa.formaPagamento || "PIX",
+
+                cartaoId:
+                    despesa.cartaoId || "",
+
+                observacao:
+                    despesa.observacao || "",
+
+                recorrente:
+                    despesa.recorrente || false,
+
+                mesAnoFim: despesa.mesAnoFim
+                    ? despesa.mesAnoFim.slice(0, 7)
+                    : "",
+            });
+
+        } catch (error) {
+            console.error(error);
+
+            toast.error(
+                "Erro ao carregar despesa."
+            );
+        }
+    }
+
+    useEffect(() => {
+        if (id) {
+            carregarDespesa();
+        }
+    }, [id]);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -103,34 +163,37 @@ export default function NovoGanho() {
         if (!validateForm()) return;
 
         try {
-            const response = await fetch("/api/financeiro/despesas-previstas", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    mesAno: formData.mesAno,
-                    categoria: formData.categoria,
-                    valor: Number(formData.valor),
+            const response = await fetch(
+                `/api/financeiro/despesas-previstas/${id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        mesAno: formData.mesAno,
+                        categoria: formData.categoria,
+                        valor: Number(formData.valor),
 
-                    dataVencimento: formData.dataVencimento,
+                        dataVencimento: formData.dataVencimento,
 
-                    formaPagamento: formData.formaPagamento,
+                        formaPagamento: formData.formaPagamento,
 
-                    cartaoId:
-                        formData.formaPagamento === "CREDITO"
-                            ? formData.cartaoId
+                        cartaoId:
+                            formData.formaPagamento === "CREDITO"
+                                ? formData.cartaoId
+                                : null,
+
+                        observacao: formData.observacao,
+
+                        recorrente: formData.recorrente,
+
+                        mesAnoFim: formData.recorrente
+                            ? formData.mesAnoFim
                             : null,
-
-                    observacao: formData.observacao,
-
-                    recorrente: formData.recorrente,
-
-                    mesAnoFim: formData.recorrente
-                        ? formData.mesAnoFim
-                        : null,
-                }),
-            });
+                    }),
+                }
+            );
 
             const data = await response.json();
 
@@ -138,14 +201,16 @@ export default function NovoGanho() {
                 throw new Error(data.message);
             }
 
-            toast.success("Despesa cadastrada com sucesso!");
+            toast.success(
+                "Despesa atualizada com sucesso!"
+            );
 
             setTimeout(() => {
                 router.push("/financeiro/despesas-previstas");
             }, 1500);
         } catch (error) {
             console.error(error);
-            toast.error("Erro ao cadastrar despesa");
+            toast.error("Erro ao atualizar despesa");
         }
     };
 
@@ -155,8 +220,8 @@ export default function NovoGanho() {
             {/* HEADER (MANTIDO IGUAL) */}
             <div className="flex items-start justify-between gap-4">
                 <PageHeader
-                    title="Provisionar Despesa"
-                    description="Cadastre despesas provisionadas do seu planejamento financeiro"
+                    title="Editar Despesa"
+                    description="Altere os dados da despesa provisionada"
                 />
 
                 <Link
@@ -287,7 +352,6 @@ export default function NovoGanho() {
                                     <option value="DINHEIRO">Dinheiro</option>
                                     <option value="DEBITO">Cartão de Débito</option>
                                     <option value="CREDITO">Cartão de Crédito</option>
-                                    <option value="TICKET">Ticket Alimentação</option>
                                 </select>
                             </div>
 
@@ -318,7 +382,7 @@ export default function NovoGanho() {
                                         </option>
                                     ))}
                                 </select>
-                       
+
                             </div>
                         )}
 
@@ -402,7 +466,7 @@ export default function NovoGanho() {
                             className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700"
                         >
                             <Save className="h-4 w-4" />
-                            Salvar Despesa
+                            Atualizar Despesa
                         </button>
                     </div>
 

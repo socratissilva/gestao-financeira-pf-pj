@@ -1,3 +1,5 @@
+//constants/categorias-despesas.ts
+
 export const CATEGORIAS_DESPESA = [
     { value: "MORADIA", label: "Moradia" },
     { value: "ALIMENTACAO", label: "Alimentação" },
@@ -7,7 +9,14 @@ export const CATEGORIAS_DESPESA = [
     { value: "LAZER", label: "Lazer" },
     { value: "ASSINATURAS", label: "Assinaturas" },
     { value: "IMPOSTOS", label: "Impostos" },
-    { value: "CARTAO_CREDITO", label: "Cartão de Crédito" },
+    { value: "KELECHI", label: "Kelechi" },
     { value: "INVESTIMENTOS", label: "Investimentos" },
     { value: "OUTROS", label: "Outros" },
 ];
+
+export const CATEGORIAS_DESPESA_LABEL = Object.fromEntries(
+    CATEGORIAS_DESPESA.map((item) => [
+        item.value,
+        item.label,
+    ])
+);
