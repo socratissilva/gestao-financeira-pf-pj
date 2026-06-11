@@ -1,4 +1,3 @@
-
 //app/%28sistema%29/financeiro/despesas-previstas/page.tsx
 "use client";
 
@@ -6,7 +5,12 @@ import { Fragment } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader/PageHeader";
-import { Edit, Plus, TrendingUp, Trash2, TrendingDownIcon, TrendingDown } from "lucide-react";
+import {
+    Edit,
+    Plus,
+    Trash2,
+    TrendingDown,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { CARTOES } from "@/constants/cartoes";
 
@@ -480,8 +484,8 @@ export default function DespesasPage() {
             <div className="grid gap-4">
                 <div className="rounded-2xl border border-red-100 bg-white p-5 shadow-sm">
                     <div className="flex items-center gap-3">
-                        <div className="rounded-xl bg-green-100 p-3">
-                            <TrendingDown className="h-5 w-5 text-green-600" />
+                        <div className="rounded-xl bg-red-100 p-3">
+                            <TrendingDown className="h-5 w-5 text-red-600" />
                         </div>
 
                         <div>
