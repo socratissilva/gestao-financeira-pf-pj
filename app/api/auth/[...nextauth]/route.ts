@@ -20,9 +20,7 @@ export const authOptions = {
 
         // const user = await User.findOne({ email });
 
-        const user: any = await User.findOne({
-          email,
-        }).lean();
+        const user = await User.findOne({ email });
 
         if (!user) return null;
 
