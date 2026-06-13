@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import DespesaPrevista from "@/models/DespesaPrevista";
+import "@/models/cartao";
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";

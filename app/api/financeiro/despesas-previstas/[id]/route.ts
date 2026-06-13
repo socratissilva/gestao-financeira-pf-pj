@@ -4,6 +4,7 @@ import DespesaPrevista from "@/models/DespesaPrevista";
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import "@/models/cartao";
 
 export const runtime = "nodejs";
 

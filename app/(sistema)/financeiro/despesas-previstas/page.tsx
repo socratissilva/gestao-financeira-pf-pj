@@ -1,45 +1,21 @@
-//app/%28sistema%29/financeiro/despesas-previstas/page.tsx
 "use client";
 
-import { Fragment } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader/PageHeader";
-import {
-    Edit,
-    Plus,
-    Trash2,
-    TrendingDown,
-} from "lucide-react";
+import { Edit, Plus, Trash2, TrendingDown } from "lucide-react";
 import toast from "react-hot-toast";
 import { CARTOES } from "@/constants/cartoes";
+import { CATEGORIAS_DESPESA_LABEL } from "@/constants/categorias-despesas";
 
-import {
-    CATEGORIAS_DESPESA_LABEL,
-} from "@/constants/categorias-despesas";
+const hoje = new Date();
+
+const mesAtual = `${String(hoje.getUTCMonth() + 1).padStart(
+    2,
+    "0"
+)}-${hoje.getUTCFullYear()}`;
 
 export default function DespesasPage() {
-
-    function toUTCDate(dateValue: string | Date) {
-        const d = new Date(dateValue);
-
-        return {
-            mes: d.getUTCMonth() + 1,
-            ano: d.getUTCFullYear(),
-            data: new Date(
-                d.getUTCFullYear(),
-                d.getUTCMonth(),
-                1
-            ),
-        };
-    }
-
-    const CARTOES_MAP = Object.fromEntries(
-        CARTOES.map((cartao) => [
-            cartao.value,
-            cartao.label,
-        ])
-    );
     const [despesas, setDespesas] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -53,18 +29,29 @@ export default function DespesasPage() {
     const [startMonth, setStartMonth] = useState("");
     const [endMonth, setEndMonth] = useState("");
 
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    function toUTCDate(dateValue: string | Date) {
+        const d = new Date(dateValue);
+
+        return {
+            mes: d.getUTCMonth() + 1,
+            ano: d.getUTCFullYear(),
+            data: new Date(d.getUTCFullYear(), d.getUTCMonth(), 1),
+        };
+    }
+
     useEffect(() => {
         carregarDespesas();
     }, []);
 
     async function carregarDespesas() {
         try {
-            const response = await fetch("/api/financeiro/despesas-previstas");
-
+            const response = await fetch(
+                "/api/financeiro/despesas-previstas"
+            );
             const data = await response.json();
-
             setDespesas(data.despesas_previstas || []);
-
         } catch (error) {
             console.error(error);
         } finally {
@@ -102,33 +89,24 @@ export default function DespesasPage() {
                     </button>
                 </div>
             </div>
-        ), {
-            duration: 10000,
-        });
+        ));
     }
 
     async function excluirDespesaConfirmado(id: string) {
         try {
             const response = await fetch(
                 `/api/financeiro/despesas-previstas/${id}`,
-                {
-                    method: "DELETE",
-                }
+                { method: "DELETE" }
             );
 
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.message);
-            }
+            if (!response.ok) throw new Error(data.message);
 
             toast.success("Despesa excluída com sucesso!");
-
             carregarDespesas();
-
         } catch (error) {
             console.error(error);
-
             toast.error("Erro ao excluir despesa.");
         }
     }
@@ -143,7 +121,6 @@ export default function DespesasPage() {
                     dataProjecao: despesa.mesAno,
                     origemId: despesa._id,
                 });
-
                 return;
             }
 
@@ -156,7 +133,7 @@ export default function DespesasPage() {
                 resultado.push({
                     ...despesa,
                     dataProjecao: new Date(atual),
-                    origemId: despesa._id, // 👈 ESSENCIAL
+                    origemId: despesa._id,
                 });
 
                 atual = new Date(
@@ -174,97 +151,108 @@ export default function DespesasPage() {
 
     const mesesDisponiveis = useMemo(() => {
         const meses = despesasExpandidas.map((d) => {
-            const data = new Date(
-                d.dataProjecao || d.mesAno
-            );
+            const data = new Date(d.dataProjecao || d.mesAno);
 
-            return `${String(
-                data.getUTCMonth() + 1
-            ).padStart(2, "0")}-${data.getUTCFullYear()}`;
+            return `${String(data.getUTCMonth() + 1).padStart(
+                2,
+                "0"
+            )}-${data.getUTCFullYear()}`;
         });
 
-        return [...new Set(meses)]
-            .sort((a, b) => {
-                const [mesA, anoA] = a.split("-");
-                const [mesB, anoB] = b.split("-");
+        return [...new Set(meses)].sort((a, b) => {
+            const [mesA, anoA] = a.split("-");
+            const [mesB, anoB] = b.split("-");
 
-                return (
-                    new Date(
-                        Number(anoB),
-                        Number(mesB) - 1
-                    ).getTime() -
-                    new Date(
-                        Number(anoA),
-                        Number(mesA) - 1
-                    ).getTime()
-                );
-            });
+            return (
+                new Date(Number(anoB), Number(mesB) - 1).getTime() -
+                new Date(Number(anoA), Number(mesA) - 1).getTime()
+            );
+        });
     }, [despesasExpandidas]);
 
     const anosDisponiveis = useMemo(() => {
         const anos = despesasExpandidas.map((d) => {
-            const info = toUTCDate(
-                d.dataProjecao || d.mesAno
-            );
-
+            const info = toUTCDate(d.dataProjecao || d.mesAno);
             return info.ano.toString();
         });
 
-        return [...new Set(anos)]
-            .sort()
-            .reverse();
+        return [...new Set(anos)].sort().reverse();
     }, [despesasExpandidas]);
 
+    // 🔥 INICIALIZAÇÃO CORRETA (NÃO SOBRESCREVE USUÁRIO)
     useEffect(() => {
         if (!mesesDisponiveis.length) return;
 
         const hoje = new Date();
+        const mesAtualStr = `${String(hoje.getMonth() + 1).padStart(2, "0")}-${hoje.getFullYear()}`;
 
-        const mesAtual = `${String(
-            hoje.getUTCMonth() + 1
-        ).padStart(2, "0")}-${hoje.getUTCFullYear()}`;
-
-        if (mesesDisponiveis.includes(mesAtual)) {
-            setSelectedMonth(mesAtual);
-        } else {
-            setSelectedMonth(mesesDisponiveis[0]);
+        // 1) se existe mês atual nos dados
+        if (mesesDisponiveis.includes(mesAtualStr)) {
+            setSelectedMonth(mesAtualStr);
+            return;
         }
+
+        // 2) senão, pega o mês mais próximo do atual (não o mais recente)
+        const ordenadoPorProximidade = [...mesesDisponiveis].sort((a, b) => {
+            const [ma, ya] = a.split("-");
+            const [mb, yb] = b.split("-");
+
+            const da = new Date(Number(ya), Number(ma) - 1).getTime();
+            const db = new Date(Number(yb), Number(mb) - 1).getTime();
+
+            const diffA = Math.abs(da - hoje.getTime());
+            const diffB = Math.abs(db - hoje.getTime());
+
+            return diffA - diffB;
+        });
+
+        setSelectedMonth(ordenadoPorProximidade[0]);
     }, [mesesDisponiveis]);
 
+    useEffect(() => {
+        if (!anosDisponiveis.length) return;
+
+        const anoAtual = new Date().getFullYear().toString();
+
+        // 1) se existe ano atual nos dados
+        if (anosDisponiveis.includes(anoAtual)) {
+            setSelectedYear(anoAtual);
+            return;
+        }
+
+        // 2) senão pega o ano mais próximo do atual
+        const ordenadoPorProximidade = [...anosDisponiveis].sort((a, b) => {
+            const diffA = Math.abs(Number(a) - Number(anoAtual));
+            const diffB = Math.abs(Number(b) - Number(anoAtual));
+            return diffA - diffB;
+        });
+
+        setSelectedYear(ordenadoPorProximidade[0]);
+    }, [anosDisponiveis]);
 
     const despesasFiltradas = useMemo(() => {
         return despesasExpandidas.filter((despesa) => {
-            const dataInfo = toUTCDate(
-                despesa.dataProjecao || despesa.mesAno
-            );
+            const d = new Date(despesa.dataProjecao || despesa.mesAno);
+
+            const mes = String(d.getUTCMonth() + 1).padStart(2, "0");
+            const ano = d.getUTCFullYear();
+            const chaveMes = `${mes}-${ano}`;
 
             if (filterType === "month") {
-                const chave = `${String(
-                    dataInfo.mes
-                ).padStart(2, "0")}-${dataInfo.ano}`;
-
-                return chave === selectedMonth;
+                return chaveMes === selectedMonth;
             }
 
             if (filterType === "year") {
-                return (
-                    dataInfo.ano.toString() === selectedYear
-                );
+                return selectedYear
+                    ? ano.toString() === selectedYear
+                    : true;
             }
 
-            if (
-                filterType === "day" &&
-                startMonth &&
-                endMonth
-            ) {
-                const competencia = `${dataInfo.ano}-${String(
-                    dataInfo.mes
-                ).padStart(2, "0")}`;
+            if (filterType === "day") {
+                if (!startMonth || !endMonth) return true;
 
-                return (
-                    competencia >= startMonth &&
-                    competencia <= endMonth
-                );
+                const competencia = `${ano}-${mes}`;
+                return competencia >= startMonth && competencia <= endMonth;
             }
 
             return true;
@@ -278,20 +266,6 @@ export default function DespesasPage() {
         endMonth,
     ]);
 
-    useEffect(() => {
-        if (!anosDisponiveis.length) return;
-
-        const anoAtual = new Date()
-            .getFullYear()
-            .toString();
-
-        if (anosDisponiveis.includes(anoAtual)) {
-            setSelectedYear(anoAtual);
-        } else {
-            setSelectedYear(anosDisponiveis[0]);
-        }
-    }, [anosDisponiveis]);
-
     const totalDespesas = useMemo(() => {
         return despesasFiltradas.reduce(
             (acc, item) => acc + Number(item.valor),
@@ -303,34 +277,22 @@ export default function DespesasPage() {
         const grupos: Record<string, any[]> = {};
 
         despesasFiltradas.forEach((despesa) => {
-            const data = new Date(
-                despesa.dataProjecao || despesa.mesAno
-            );
+            const data = new Date(despesa.dataProjecao || despesa.mesAno);
 
             const chave = `${data.getUTCFullYear()}-${String(
                 data.getUTCMonth() + 1
             ).padStart(2, "0")}`;
 
-            if (!grupos[chave]) {
-                grupos[chave] = [];
-            }
-
+            if (!grupos[chave]) grupos[chave] = [];
             grupos[chave].push(despesa);
         });
 
-        return Object.entries(grupos).sort(
-            ([a], [b]) => a.localeCompare(b)
+        return Object.entries(grupos).sort(([a], [b]) =>
+            a.localeCompare(b)
         );
     }, [despesasFiltradas]);
 
-    if (loading) {
-        return (
-            <div className="p-6">
-                Carregando...
-            </div>
-        );
-    }
-
+    if (loading) return <div className="p-6">Carregando...</div>;
     return (
         <div className="space-y-6">
 
