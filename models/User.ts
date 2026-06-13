@@ -48,10 +48,8 @@ const User =
   models.User ||
   mongoose.model("User", UserSchema);
 
-export default User as mongoose.Model<any>;
+export default models.User || mongoose.model("User", UserSchema);
 
-// const User = models.User || mongoose.model("User", UserSchema);
 
-// export default User;
 
 
