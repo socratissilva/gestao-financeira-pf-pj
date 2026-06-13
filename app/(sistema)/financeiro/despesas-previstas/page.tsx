@@ -624,7 +624,9 @@ export default function DespesasPage() {
 
                                                     <td className="px-4 py-3">
                                                         {despesa.formaPagamento === "CREDITO"
-                                                            ? `Cartão ${CARTOES_MAP[despesa.cartaoId] ?? despesa.cartaoId}`
+                                                            ? `Cartão de Crédito - ${despesa.cartaoId?.nome ??
+                                                            "Cartão não encontrado"
+                                                            }`
                                                             : despesa.formaPagamento === "PIX"
                                                                 ? "PIX"
                                                                 : despesa.formaPagamento === "DINHEIRO"

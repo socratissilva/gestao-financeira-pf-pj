@@ -7,7 +7,6 @@ import { ChevronLeft, Save } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { CARTOES } from "@/constants/cartoes";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import { CATEGORIAS_DESPESA }
@@ -30,7 +29,14 @@ interface FormData {
     mesAnoFim: string;
 }
 
-export default function EditarDespesaPage(){
+interface Cartao {
+    _id: string;
+    nome: string;
+    vencimentoDia: number;
+    limite?: number | null;
+}
+
+export default function EditarDespesaPage() {
     const params = useParams();
 
     const id = params.id as string;
@@ -53,6 +59,35 @@ export default function EditarDespesaPage(){
 
     const [errors, setErrors] = useState<Partial<FormData>>({});
     const router = useRouter();
+
+    const [cartoes, setCartoes] = useState<Cartao[]>([]);
+    const [loadingCartoes, setLoadingCartoes] = useState(false);
+
+    async function carregarCartoes() {
+        try {
+            setLoadingCartoes(true);
+
+            const response = await fetch(
+                "/api/financeiro/cartoes"
+            );
+
+            if (!response.ok) {
+                throw new Error();
+            }
+
+            const data = await response.json();
+
+            setCartoes(data);
+        } catch (error) {
+            console.error(error);
+
+            toast.error(
+                "Erro ao carregar cartões."
+            );
+        } finally {
+            setLoadingCartoes(false);
+        }
+    }
 
     async function carregarDespesa() {
         try {
@@ -107,6 +142,8 @@ export default function EditarDespesaPage(){
         if (id) {
             carregarDespesa();
         }
+
+        carregarCartoes();
     }, [id]);
 
     const handleChange = (
@@ -213,6 +250,51 @@ export default function EditarDespesaPage(){
             toast.error("Erro ao atualizar despesa");
         }
     };
+
+    const cartaoSelecionado = cartoes.find(
+        (cartao) => cartao._id === formData.cartaoId
+    );
+
+    useEffect(() => {
+        if (
+            formData.formaPagamento !== "CREDITO" ||
+            !cartaoSelecionado
+        ) {
+            return;
+        }
+
+        const hoje = new Date();
+
+        let ano = hoje.getFullYear();
+        let mes = hoje.getMonth();
+
+        if (hoje.getDate() > cartaoSelecionado.vencimentoDia) {
+            mes += 1;
+
+            if (mes > 11) {
+                mes = 0;
+                ano += 1;
+            }
+        }
+
+        const dataVencimento = new Date(
+            ano,
+            mes,
+            cartaoSelecionado.vencimentoDia
+        );
+
+        const dataFormatada =
+            dataVencimento.toISOString().split("T")[0];
+
+        setFormData((prev) => ({
+            ...prev,
+            dataVencimento: dataFormatada,
+        }));
+    }, [
+        formData.formaPagamento,
+        formData.cartaoId,
+        cartaoSelecionado,
+    ]);
 
     return (
         <div className="space-y-6">
@@ -321,21 +403,6 @@ export default function EditarDespesaPage(){
 
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
-                            {/* DATA DE VENCIMENTO */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Data de Vencimento *
-                                </label>
-
-                                <input
-                                    type="date"
-                                    name="dataVencimento"
-                                    value={formData.dataVencimento}
-                                    onChange={handleChange}
-                                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm"
-                                />
-                            </div>
-
                             {/* FORMA DE PAGAMENTO */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700">
@@ -355,6 +422,32 @@ export default function EditarDespesaPage(){
                                 </select>
                             </div>
 
+                            {/* DATA/VENCIMENTO */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">
+                                    {formData.formaPagamento === "CREDITO"
+                                        ? "Vencimento da Fatura *"
+                                        : "Data de Vencimento *"}
+                                </label>
+
+                                <input
+                                    type="date"
+                                    name="dataVencimento"
+                                    value={formData.dataVencimento}
+                                    onChange={handleChange}
+                                    disabled={
+                                        formData.formaPagamento === "CREDITO"
+                                    }
+                                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:bg-slate-100"
+                                />
+
+                                {formData.formaPagamento === "CREDITO" &&
+                                    cartaoSelecionado && (
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            Data definida automaticamente pelo cartão selecionado.
+                                        </p>
+                                    )}
+                            </div>
 
                         </div>
 
@@ -363,6 +456,7 @@ export default function EditarDespesaPage(){
                                 <label className="block text-sm font-medium text-slate-700">
                                     Cartão *
                                 </label>
+
                                 <select
                                     name="cartaoId"
                                     value={formData.cartaoId}
@@ -373,16 +467,28 @@ export default function EditarDespesaPage(){
                                         Selecione um cartão
                                     </option>
 
-                                    {CARTOES.map((cartao) => (
+                                    {cartoes.map((cartao) => (
                                         <option
-                                            key={cartao.value}
-                                            value={cartao.value}
+                                            key={cartao._id}
+                                            value={cartao._id}
                                         >
-                                            {cartao.label}
+                                            {cartao.nome}
                                         </option>
                                     ))}
                                 </select>
 
+                                {cartaoSelecionado && (
+                                    <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                        <p className="text-sm text-blue-800">
+                                            Vencimento da fatura: dia{" "}
+                                            <strong>
+                                                {String(
+                                                    cartaoSelecionado.vencimentoDia
+                                                ).padStart(2, "0")}
+                                            </strong>
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
 

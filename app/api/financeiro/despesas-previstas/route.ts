@@ -1,3 +1,5 @@
+// app/api/financeiro/despesas-previstas/route.ts
+
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import DespesaPrevista from "@/models/DespesaPrevista";
@@ -29,9 +31,12 @@ export async function GET() {
     const despesas_previstas =
       await DespesaPrevista.find({
         userId: session.user.id,
-      }).sort({
-        mesAno: -1,
-      });
+      })
+        .populate("cartaoId")
+        .sort({
+          mesAno: -1,
+        })
+        .lean();
 
     return NextResponse.json({
       success: true,
@@ -39,7 +44,10 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Erro ao buscar despesas:",
+      error
+    );
 
     return NextResponse.json(
       {
@@ -99,15 +107,16 @@ export async function POST(req: Request) {
 
         valor: Number(valor),
 
-        dataVencimento: dataVencimento
-          ? new Date(dataVencimento)
-          : null,
+        dataVencimento:
+          dataVencimento
+            ? new Date(dataVencimento)
+            : null,
 
         formaPagamento,
 
         cartaoId:
           formaPagamento === "CREDITO"
-            ? cartaoId
+            ? String(cartaoId)
             : null,
 
         observacao,
@@ -115,8 +124,11 @@ export async function POST(req: Request) {
         recorrente,
 
         mesAnoFim:
-          recorrente && mesAnoFim
-            ? new Date(`${mesAnoFim}-01`)
+          recorrente &&
+            mesAnoFim
+            ? new Date(
+              `${mesAnoFim}-01`
+            )
             : null,
 
         ativa: true,
@@ -126,8 +138,12 @@ export async function POST(req: Request) {
       success: true,
       despesa,
     });
+
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Erro ao cadastrar despesa:",
+      error
+    );
 
     return NextResponse.json(
       {

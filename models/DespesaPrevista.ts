@@ -6,8 +6,7 @@ import {
   Document,
 } from "mongoose";
 
-export interface IDespesaPrevista
-  extends Document {
+export interface IDespesaPrevista extends Document {
   userId: string;
 
   mesAno: Date;
@@ -19,13 +18,19 @@ export interface IDespesaPrevista
   dataVencimento?: Date;
 
   formaPagamento:
-    | "PIX"
-    | "DINHEIRO"
-    | "DEBITO"
-    | "CREDITO"
-    | "TICKET";
+  | "PIX"
+  | "DINHEIRO"
+  | "DEBITO"
+  | "CREDITO"
+  | "TICKET";
 
-  cartaoId?: string;
+  cartaoId?:
+  | string
+  | {
+    _id: string;
+    nome: string;
+    vencimentoDia: number;
+  };
 
   observacao?: string;
 
@@ -79,7 +84,8 @@ const DespesaPrevistaSchema =
       },
 
       cartaoId: {
-        type: String,
+        type: Schema.Types.ObjectId,
+        ref: "Cartao",
         default: null,
       },
 

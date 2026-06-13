@@ -4,8 +4,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+export const runtime = "nodejs";
 
-const authOptions = {
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -19,8 +20,8 @@ const authOptions = {
 
         // const user = await User.findOne({ email });
 
-        const user = await User.findOne({
-          email: email,
+        const user: any = await User.findOne({
+          email,
         }).lean();
 
         if (!user) return null;
