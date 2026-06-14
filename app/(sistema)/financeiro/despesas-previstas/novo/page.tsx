@@ -81,6 +81,29 @@ export default function NovoGanho() {
         carregarCartoes();
     }, []);
 
+    useEffect(() => {
+        if (
+            formData.formaPagamento !== "CREDITO" ||
+            !cartaoSelecionado ||
+            !formData.mesAno
+        ) return;
+
+        const [anoBase, mesBase] = formData.mesAno.split("-").map(Number);
+
+        let ano = anoBase;
+        let mes = mesBase - 1; // JS começa em 0
+
+        const diaVencimento = cartaoSelecionado.vencimentoDia;
+
+        const data = new Date(ano, mes, diaVencimento);
+
+        setFormData((prev) => ({
+            ...prev,
+            dataVencimento: data.toISOString().split("T")[0],
+        }));
+    }, [formData.formaPagamento, formData.cartaoId, formData.mesAno]);
+
+
     const [errors, setErrors] = useState<Partial<FormData>>({});
     const router = useRouter();
 
@@ -188,10 +211,11 @@ export default function NovoGanho() {
     );
 
     useEffect(() => {
-        if (
-            formData.formaPagamento !== "CREDITO" ||
-            !cartaoSelecionado
-        ) {
+        if (formData.formaPagamento !== "CREDITO" || !cartaoSelecionado) {
+            setFormData((prev) => ({
+                ...prev,
+                dataVencimento: "",
+            }));
             return;
         }
 
@@ -202,7 +226,6 @@ export default function NovoGanho() {
 
         if (hoje.getDate() > cartaoSelecionado.vencimentoDia) {
             mes += 1;
-
             if (mes > 11) {
                 mes = 0;
                 ano += 1;
@@ -215,19 +238,11 @@ export default function NovoGanho() {
             cartaoSelecionado.vencimentoDia
         );
 
-        const dataFormatada = dataVencimento
-            .toISOString()
-            .split("T")[0];
-
         setFormData((prev) => ({
             ...prev,
-            dataVencimento: dataFormatada,
+            dataVencimento: dataVencimento.toISOString().split("T")[0],
         }));
-    }, [
-        formData.formaPagamento,
-        formData.cartaoId,
-        cartaoSelecionado,
-    ]);
+    }, [formData.formaPagamento, formData.cartaoId]);
 
     return (
         <div className="space-y-6">

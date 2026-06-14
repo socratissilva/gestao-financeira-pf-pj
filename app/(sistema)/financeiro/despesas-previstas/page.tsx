@@ -47,9 +47,13 @@ export default function DespesasPage() {
 
     async function carregarDespesas() {
         try {
-            const response = await fetch(
-                "/api/financeiro/despesas-previstas"
-            );
+            const response = await fetch("/api/financeiro/despesas-previstas");
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || "Erro ao buscar despesas");
+            }
+
             const data = await response.json();
             setDespesas(data.despesas_previstas || []);
         } catch (error) {
@@ -112,41 +116,11 @@ export default function DespesasPage() {
     }
 
     const despesasExpandidas = useMemo(() => {
-        const resultado: any[] = [];
-
-        despesas.forEach((despesa) => {
-            if (!despesa.recorrente || !despesa.mesAnoFim) {
-                resultado.push({
-                    ...despesa,
-                    dataProjecao: despesa.mesAno,
-                    origemId: despesa._id,
-                });
-                return;
-            }
-
-            const inicio = new Date(despesa.mesAno);
-            const fim = new Date(despesa.mesAnoFim);
-
-            let atual = new Date(inicio);
-
-            while (atual <= fim) {
-                resultado.push({
-                    ...despesa,
-                    dataProjecao: new Date(atual),
-                    origemId: despesa._id,
-                });
-
-                atual = new Date(
-                    Date.UTC(
-                        atual.getUTCFullYear(),
-                        atual.getUTCMonth() + 1,
-                        1
-                    )
-                );
-            }
-        });
-
-        return resultado;
+        return despesas.map((d: any) => ({
+            ...d,
+            dataProjecao: d.mesAno,
+            origemId: d._id,
+        }));
     }, [despesas]);
 
     const mesesDisponiveis = useMemo(() => {

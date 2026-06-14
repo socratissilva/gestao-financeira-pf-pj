@@ -127,49 +127,6 @@ export default function CartoesPage() {
         return null;
     };
 
-    function expandDespesaAno(despesa, ano) {
-        const inicio = new Date(despesa.dataVencimento);
-        const fim = despesa.fimRecorrencia
-            ? new Date(despesa.fimRecorrencia)
-            : new Date(`${ano}-12-31`);
-
-        const valores = [];
-
-        const atual = new Date(inicio);
-
-        while (atual <= fim) {
-            if (atual.getFullYear() === ano) {
-                valores.push(despesa.valor);
-            }
-
-            atual.setMonth(atual.getMonth() + 1);
-        }
-
-        return valores;
-    }
-
-    function expandDespesaPeriodo(despesa, startDate, endDate) {
-        const inicio = new Date(despesa.dataVencimento);
-
-        const fim = despesa.fimRecorrencia
-            ? new Date(despesa.fimRecorrencia)
-            : endDate;
-
-        const valores = [];
-
-        const atual = new Date(inicio);
-
-        while (atual <= fim) {
-            if (atual >= startDate && atual <= endDate) {
-                valores.push(Number(despesa.valor));
-            }
-
-            atual.setMonth(atual.getMonth() + 1);
-        }
-
-        return valores;
-    }
-
     // -------------------------
     // RESUMO CARTÕES
     // -------------------------
@@ -192,15 +149,27 @@ export default function CartoesPage() {
             let valoresExpandidos: number[] = [];
 
             if (filterType === "year") {
-                valoresExpandidos = gastosDoCartao.flatMap((d) =>
-                    expandDespesaAno(d, Number(selectedYear))
-                );
+                valoresExpandidos = gastosDoCartao
+                    .filter((d) => {
+                        const ano = new Date(
+                            d.dataVencimento || d.mesAno
+                        ).getFullYear();
+
+                        return ano === Number(selectedYear);
+                    })
+                    .map((d) => Number(d.valor));
             }
 
             if (filterType === "period") {
-                valoresExpandidos = gastosDoCartao.flatMap((d) =>
-                    expandDespesaPeriodo(d, startDate, endDate)
-                );
+                valoresExpandidos = gastosDoCartao
+                    .filter((d) => {
+                        const data = new Date(
+                            d.dataVencimento || d.mesAno
+                        );
+
+                        return data >= startDate && data <= endDate;
+                    })
+                    .map((d) => Number(d.valor));
             }
 
             if (filterType === "month") {
@@ -219,9 +188,21 @@ export default function CartoesPage() {
                 0
             );
 
+            const limite = Number(cartao.limite || 0);
+
+            // TODAS as despesas do cartão, independente do filtro
+            const totalLancadoCartao = gastosDoCartao.reduce(
+                (acc, despesa) => acc + Number(despesa.valor || 0),
+                0
+            );
+
+            const disponivel = limite - totalLancadoCartao;
+
             return {
                 ...cartao,
                 totalGasto,
+                disponivel,
+                totalLancadoCartao,
                 quantidadeCompras: valoresExpandidos.length,
             };
         });
@@ -306,17 +287,17 @@ export default function CartoesPage() {
 
                         <label className="flex items-center gap-2">
                             <input type="radio" checked={filterType === "month"} onChange={() => setFilterType("month")} />
-                            Mês
+                            Por Mês
                         </label>
 
                         <label className="flex items-center gap-2">
                             <input type="radio" checked={filterType === "year"} onChange={() => setFilterType("year")} />
-                            Ano
+                            Por Ano
                         </label>
 
                         <label className="flex items-center gap-2">
                             <input type="radio" checked={filterType === "period"} onChange={() => setFilterType("period")} />
-                            Período
+                            Por Período
                         </label>
                     </div>
 
@@ -385,8 +366,34 @@ export default function CartoesPage() {
                             />
                         </div>
 
-                        <div className="mt-2 text-xs text-slate-400">
-                            Limite: {cartao.limite ?? "não definido"}
+                        <div className="mt-2 flex justify-between text-xs text-slate-500">
+                            <span>
+                                Limite:{" "}
+                                {Number(cartao.limite || 0).toLocaleString(
+                                    "pt-BR",
+                                    {
+                                        style: "currency",
+                                        currency: "BRL",
+                                    }
+                                )}
+                            </span>
+
+                            <span
+                                className={
+                                    cartao.disponivel < 0
+                                        ? "text-red-600 font-medium"
+                                        : "text-green-600 font-medium"
+                                }
+                            >
+                                Disponível:{" "}
+                                {cartao.disponivel.toLocaleString(
+                                    "pt-BR",
+                                    {
+                                        style: "currency",
+                                        currency: "BRL",
+                                    }
+                                )}
+                            </span>
                         </div>
                     </div>
                 ))}
