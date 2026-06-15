@@ -6,7 +6,14 @@ import { Fragment } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader/PageHeader";
-import { Edit, Plus, TrendingUp, Trash2 } from "lucide-react";
+import {
+  Edit,
+  Plus,
+  TrendingUp,
+  Trash2,
+  CheckCircle,
+  Clock3,
+} from "lucide-react";
 import { CATEGORIAS_LABEL } from "@/constants/categorias-receitas";
 import toast from "react-hot-toast";
 
@@ -161,31 +168,22 @@ export default function ReceitasPage() {
 
   const mesesDisponiveis = useMemo(() => {
     const meses = receitasExpandidas.map((r) => {
-      const data = new Date(
-        r.dataProjecao || r.mesAno
-      );
+      const data = new Date(r.dataProjecao || r.mesAno);
 
       return `${String(
         data.getUTCMonth() + 1
       ).padStart(2, "0")}-${data.getUTCFullYear()}`;
     });
 
-    return [...new Set(meses)]
-      .sort((a, b) => {
-        const [mesA, anoA] = a.split("-");
-        const [mesB, anoB] = b.split("-");
+    return [...new Set(meses)].sort((a, b) => {
+      const [mesA, anoA] = a.split("-");
+      const [mesB, anoB] = b.split("-");
 
-        return (
-          new Date(
-            Number(anoB),
-            Number(mesB) - 1
-          ).getTime() -
-          new Date(
-            Number(anoA),
-            Number(mesA) - 1
-          ).getTime()
-        );
-      });
+      return (
+        new Date(Number(anoA), Number(mesA) - 1).getTime() -
+        new Date(Number(anoB), Number(mesB) - 1).getTime()
+      );
+    });
   }, [receitasExpandidas]);
 
   const anosDisponiveis = useMemo(() => {
@@ -324,7 +322,7 @@ export default function ReceitasPage() {
       {/* HEADER */}
       <div className="flex items-start justify-between">
         <PageHeader
-          title="Receitas Provisionadas"
+          title="Gestão de Receitas"
           description="Gerencie suas receitas e entradas financeiras"
         />
 
@@ -508,15 +506,15 @@ export default function ReceitasPage() {
               </th>
 
               <th className="px-4 py-3 text-left text-sm">
-                Valor
-              </th>
-
-              <th className="px-4 py-3 text-left text-sm">
-                Recorrente
-              </th>
-
-              <th className="px-4 py-3 text-left text-sm">
                 Descrição
+              </th>
+
+              <th className="px-4 py-3 text-left text-sm">
+                Valor Provisionado
+              </th>
+
+              <th className="px-4 py-3 text-left text-sm">
+                Valor Recebido
               </th>
 
               <th className="px-4 py-3 text-center text-sm">
@@ -595,7 +593,13 @@ export default function ReceitasPage() {
 
                           </td>
 
-                          <td className="px-4 py-3 font-semibold text-green-600">
+                          <td className="px-4 py-3">
+                            {
+                              receita.observacao
+                            }
+                          </td>
+
+                          <td className="px-4 py-3 600">
                             {Number(
                               receita.valor
                             ).toLocaleString(
@@ -610,15 +614,30 @@ export default function ReceitasPage() {
                           </td>
 
                           <td className="px-4 py-3">
-                            {receita.recorrente
-                              ? "Sim"
-                              : "Não"}
-                          </td>
 
-                          <td className="px-4 py-3">
-                            {
-                              receita.observacao
-                            }
+                            {Number(receita.valorRecebido || 0) > 0 ? (
+
+                              <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-green-700 font-semibold">
+                                <CheckCircle className="h-4 w-4" />
+
+                                {Number(receita.valorRecebido).toLocaleString(
+                                  "pt-BR",
+                                  {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  }
+                                )}
+                              </div>
+
+                            ) : (
+
+                              <div className="inline-flex items-center gap-2 rounded-full bg-yellow-50 px-3 py-1 text-yellow-700 font-semibold">
+                                <Clock3 className="h-4 w-4" />
+                                Pendente
+                              </div>
+
+                            )}
+
                           </td>
 
                           <td className="px-4 py-3 text-center">

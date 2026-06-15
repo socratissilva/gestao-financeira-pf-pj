@@ -8,6 +8,9 @@ export interface IReceitaPrevista extends Document {
   mesAno: Date;
   categoria: string;
   valor: number;
+
+  valorRecebido: number | null;
+
   observacao: string;
   recorrente: boolean;
   mesAnoFim: Date | null;
@@ -45,6 +48,13 @@ const ReceitaPrevistaSchema = new Schema<IReceitaPrevista>(
       required: true,
       min: 0,
     },
+
+    valorRecebido: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
     observacao: {
       type: String,
       default: "",

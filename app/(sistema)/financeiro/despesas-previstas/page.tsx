@@ -290,7 +290,7 @@ export default function DespesasPage() {
             {/* HEADER */}
             <div className="flex items-start justify-between">
                 <PageHeader
-                    title="Despesas Provisionadas"
+                    title="Gestão de Despesas"
                     description="Gerencie suas despesas e saídas financeiras"
                 />
 

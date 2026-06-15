@@ -1,3 +1,4 @@
+//api/[id]/route.ts
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import ReceitaPrevista from "@/models/ReceitaPrevista";
@@ -50,7 +51,7 @@ export async function GET(
     );
   }
 }
-    export async function PUT(
+export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -74,6 +75,7 @@ export async function GET(
       mesAno,
       categoria,
       valor,
+      valorRecebido,
       observacao,
       recorrente,
       mesAnoFim,
@@ -87,7 +89,16 @@ export async function GET(
       {
         mesAno,
         categoria,
+
         valor: Number(valor),
+
+        valorRecebido:
+          valorRecebido === "" ||
+            valorRecebido === null ||
+            valorRecebido === undefined
+            ? null
+            : Number(valorRecebido),
+
         observacao,
         recorrente,
         mesAnoFim: recorrente ? mesAnoFim : null,

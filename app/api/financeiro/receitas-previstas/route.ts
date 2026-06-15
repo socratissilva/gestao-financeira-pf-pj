@@ -94,7 +94,11 @@ export async function POST(req: Request) {
     const receita = await ReceitaPrevista.create({
       mesAno,
       categoria,
+
       valor: Number(valor),
+
+      valorRecebido: null,
+
       observacao: observacao || "",
       recorrente: !!recorrente,
       mesAnoFim: mesAnoFim || null,

@@ -14,21 +14,24 @@ interface FormData {
     mesAno: string;
     categoria: string;
     valor: string;
+
+    valorRecebido: string;
+
     observacao: string;
     recorrente: boolean;
-    mesAnoFim: string; // ✅ ALTERADO (era data)
+    mesAnoFim: string;
 }
 
 export default function NovoGanho() {
     const hoje = new Date();
 
-    const mesAtual = String(hoje.getMonth() + 1).padStart(2, "0");
-    const anoAtual = hoje.getFullYear().toString();
-
     const [formData, setFormData] = useState<FormData>({
-        mesAno: `${mesAtual}-${anoAtual}`,
+        mesAno: new Date().toISOString().slice(0, 7),
         categoria: "RENDA_1",
         valor: "",
+
+        valorRecebido: "",
+
         observacao: "",
         recorrente: false,
         mesAnoFim: "",
@@ -100,12 +103,14 @@ export default function NovoGanho() {
                     mesAno: formData.mesAno,
                     categoria: formData.categoria,
                     valor: Number(formData.valor),
+
+                    valorRecebido: null,
+
                     observacao: formData.observacao,
-
                     recorrente: formData.recorrente,
-
-                    // ✅ agora também mês/ano
-                    mesAnoFim: formData.recorrente ? formData.mesAnoFim : null,
+                    mesAnoFim: formData.recorrente
+                        ? formData.mesAnoFim
+                        : null,
                 }),
             });
 
