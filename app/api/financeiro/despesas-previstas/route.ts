@@ -86,6 +86,8 @@ export async function POST(req: Request) {
       recorrente,
       categoria,
       valor,
+      valorPago,
+      dataPagamento,
       dataVencimento,
       formaPagamento,
       cartaoId,
@@ -119,6 +121,10 @@ export async function POST(req: Request) {
         mesAno: new Date(`${mesAno}-01`),
         categoria,
         valor: Number(valor),
+
+        valorPago: null,
+        dataPagamento: null,
+
         dataVencimento: dataVencimento
           ? new Date(`${dataVencimento}T12:00:00`)
           : null,
@@ -167,6 +173,10 @@ export async function POST(req: Request) {
         mesAno: new Date(`${m}-01`),
         categoria,
         valor: Number(valor),
+
+        valorPago: null,
+        dataPagamento: null,
+
         dataVencimento: vencimentoFinal, // ✅ agora correto por mês
         formaPagamento,
         cartaoId:

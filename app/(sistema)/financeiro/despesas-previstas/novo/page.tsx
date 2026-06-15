@@ -26,6 +26,10 @@ interface FormData {
 
     recorrente: boolean;
     mesAnoFim: string;
+
+    // NOVOS CAMPOS
+    valorPago: string;
+    dataPagamento: string;
 }
 
 interface Cartao {
@@ -51,6 +55,10 @@ export default function NovoGanho() {
         observacao: "",
         recorrente: false,
         mesAnoFim: "",
+
+        // NOVOS
+        valorPago: "",
+        dataPagamento: "",
     });
 
     const [cartoes, setCartoes] = useState<Cartao[]>([]);
@@ -187,6 +195,14 @@ export default function NovoGanho() {
                     mesAnoFim: formData.recorrente
                         ? formData.mesAnoFim
                         : null,
+
+                    valorPago:
+                        formData.valorPago === ""
+                            ? null
+                            : Number(formData.valorPago),
+
+                    dataPagamento:
+                        formData.dataPagamento || null,
                 }),
             });
 

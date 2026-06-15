@@ -3,7 +3,16 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader/PageHeader";
-import { Edit, Plus, Trash2, TrendingDown } from "lucide-react";
+import {
+    Edit,
+    Plus,
+    Trash2,
+    TrendingDown,
+    CheckCircle,
+    Clock3,
+    AlertTriangle,
+    TrendingUp,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { CARTOES } from "@/constants/cartoes";
 import { CATEGORIAS_DESPESA_LABEL } from "@/constants/categorias-despesas";
@@ -247,6 +256,14 @@ export default function DespesasPage() {
         );
     }, [despesasFiltradas]);
 
+    const totalPago = useMemo(() => {
+        return despesasFiltradas.reduce(
+            (acc, item) =>
+                acc + Number(item.valorPago || 0),
+            0
+        );
+    }, [despesasFiltradas]);
+
     const despesasAgrupadas = useMemo(() => {
         const grupos: Record<string, any[]> = {};
 
@@ -417,7 +434,7 @@ export default function DespesasPage() {
             </div>
 
             {/* RESUMO */}
-            <div className="grid gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-red-100 bg-white p-5 shadow-sm">
                     <div className="flex items-center gap-3">
                         <div className="rounded-xl bg-red-100 p-3">
@@ -441,7 +458,33 @@ export default function DespesasPage() {
                         </div>
                     </div>
                 </div>
+                <div className="rounded-2xl border border-green-100 bg-white p-5 shadow-sm">
+                    <div className="flex items-center gap-3">
+
+                        <div className="rounded-xl bg-green-100 p-3">
+                            <TrendingUp className="h-5 w-5 text-green-600" />
+                        </div>
+
+                        <div>
+                            <p className="text-sm text-slate-500">
+                                Despesas Pagas
+                            </p>
+
+                            <p className="text-2xl font-bold text-green-600">
+                                {totalPago.toLocaleString(
+                                    "pt-BR",
+                                    {
+                                        style: "currency",
+                                        currency: "BRL",
+                                    }
+                                )}
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
             </div>
+
 
             {/* TABELA */}
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -457,15 +500,15 @@ export default function DespesasPage() {
                             </th>
 
                             <th className="px-4 py-3 text-left text-sm">
-                                Valor
+                                Valor Provisionado
                             </th>
 
                             <th className="px-4 py-3 text-left text-sm">
-                                Forma Pagamento
+                                Valor Pago
                             </th>
 
                             <th className="px-4 py-3 text-left text-sm">
-                                Descrição
+                                Vencimento
                             </th>
 
                             <th className="px-4 py-3 text-center text-sm">
@@ -544,40 +587,78 @@ export default function DespesasPage() {
 
                                                     </td>
 
-                                                    <td className="px-4 py-3 font-semibold text-red-600">
+                                                    {/* VALOR PROVISIONADO */}
+                                                    <td className="px-4 py-3 600">
                                                         {Number(
                                                             despesa.valor
                                                         ).toLocaleString(
                                                             "pt-BR",
                                                             {
-                                                                style:
-                                                                    "currency",
-                                                                currency:
-                                                                    "BRL",
+                                                                style: "currency",
+                                                                currency: "BRL",
                                                             }
                                                         )}
                                                     </td>
 
+                                                    {/* VALOR PAGO */}
                                                     <td className="px-4 py-3">
-                                                        {despesa.formaPagamento === "CREDITO"
-                                                            ? `Cartão de Crédito - ${despesa.cartaoId?.nome ??
-                                                            "Cartão não encontrado"
-                                                            }`
-                                                            : despesa.formaPagamento === "PIX"
-                                                                ? "PIX"
-                                                                : despesa.formaPagamento === "DINHEIRO"
-                                                                    ? "Dinheiro"
-                                                                    : despesa.formaPagamento === "DEBITO"
-                                                                        ? "Cartão de Débito"
-                                                                        : despesa.formaPagamento === "TICKET"
-                                                                            ? "Ticket Alimentação"
-                                                                            : despesa.formaPagamento}
+                                                        {(() => {
+                                                            const valorPago = Number(despesa.valorPago || 0);
+
+                                                            if (valorPago > 0) {
+                                                                return (
+                                                                    <div className="flex items-center gap-2 text-green-600 font-semibold">
+                                                                        <CheckCircle className="h-4 w-4" />
+
+                                                                        {valorPago.toLocaleString(
+                                                                            "pt-BR",
+                                                                            {
+                                                                                style: "currency",
+                                                                                currency: "BRL",
+                                                                            }
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            const hoje = new Date();
+
+                                                            const vencimento = despesa.dataVencimento
+                                                                ? new Date(despesa.dataVencimento)
+                                                                : null;
+
+                                                            const atrasada =
+                                                                vencimento &&
+                                                                vencimento < hoje;
+
+                                                            return atrasada ? (
+                                                                <div className="flex items-center gap-2 text-red-600 font-semibold">
+                                                                    <AlertTriangle className="h-4 w-4" />
+                                                                    Atrasada
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2 text-yellow-600 font-semibold">
+                                                                    <Clock3 className="h-4 w-4" />
+                                                                    Pendente
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </td>
 
-                                                    <td className="px-4 py-3">
-                                                        {
-                                                            despesa.observacao
-                                                        }
+                                                    {/* VENCIMENTO */}
+                                                    <td
+                                                        className={`px-4 py-3 font-medium ${despesa.dataVencimento &&
+                                                            new Date(despesa.dataVencimento) < new Date() &&
+                                                            (!despesa.valorPago || despesa.valorPago <= 0)
+                                                            ? "text-red-600"
+                                                            : "text-slate-700"
+                                                            }`}
+                                                    >
+                                                        {despesa.dataVencimento
+                                                            ? new Date(
+                                                                despesa.dataVencimento
+                                                            ).toLocaleDateString("pt-BR")
+                                                            : "-"}
                                                     </td>
 
                                                     <td className="px-4 py-3 text-center">

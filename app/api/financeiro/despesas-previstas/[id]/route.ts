@@ -1,3 +1,4 @@
+//api/financeiro/despesas-previstas/[id]/route.ts
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import DespesaPrevista from "@/models/DespesaPrevista";
@@ -87,8 +88,7 @@ export async function PUT(
     try {
         await connectDB();
 
-        const session =
-            await getServerSession(authOptions);
+        const session = await getServerSession(authOptions);
 
         if (!session?.user?.id) {
             return NextResponse.json(
@@ -96,9 +96,7 @@ export async function PUT(
                     success: false,
                     message: "Não autenticado",
                 },
-                {
-                    status: 401,
-                }
+                { status: 401 }
             );
         }
 
@@ -116,50 +114,65 @@ export async function PUT(
             observacao,
             recorrente,
             mesAnoFim,
+
+            // ✅ NOVOS CAMPOS
+            valorPago,
+            dataPagamento,
         } = body;
 
-        const despesa =
-            await DespesaPrevista.findOneAndUpdate(
-                {
-                    _id: id,
-                    userId: session.user.id,
-                },
-                {
-                    mesAno: new Date(
-                        `${mesAno}-01`
-                    ),
+        // ✅ REGRA ÚNICA DE PAGAMENTO
+        const pago =
+            valorPago !== null &&
+            valorPago !== undefined &&
+            Number(valorPago) > 0;
 
-                    categoria,
+        const despesa = await DespesaPrevista.findOneAndUpdate(
+            {
+                _id: id,
+                userId: session.user.id,
+            },
+            {
+                mesAno: new Date(`${mesAno}-01`),
 
-                    valor: Number(valor),
+                categoria,
 
-                    dataVencimento:
-                        dataVencimento
-                            ? new Date(dataVencimento)
-                            : null,
+                valor: Number(valor),
 
-                    formaPagamento,
+                dataVencimento: dataVencimento
+                    ? new Date(dataVencimento)
+                    : null,
 
-                    cartaoId:
-                        formaPagamento === "CREDITO"
-                            ? cartaoId
-                            : null,
+                formaPagamento,
 
-                    observacao,
+                cartaoId:
+                    formaPagamento === "CREDITO" ? cartaoId : null,
 
-                    recorrente,
+                observacao,
 
-                    mesAnoFim:
-                        recorrente && mesAnoFim
-                            ? new Date(
-                                `${mesAnoFim}-01`
-                            )
-                            : null,
-                },
-                {
-                    new: true,
-                }
-            );
+                recorrente,
+
+                mesAnoFim:
+                    recorrente && mesAnoFim
+                        ? new Date(`${mesAnoFim}-01`)
+                        : null,
+
+                // ✅ CONTROLE DE PAGAMENTO
+                valorPago: pago
+                    ? Number(valorPago)
+                    : null,
+
+                dataPagamento: pago
+                    ? (
+                        dataPagamento
+                            ? new Date(`${dataPagamento}T12:00:00`)
+                            : new Date()
+                    )
+                    : null,
+            },
+            {
+                new: true,
+            }
+        );
 
         if (!despesa) {
             return NextResponse.json(
@@ -167,9 +180,7 @@ export async function PUT(
                     success: false,
                     message: "Despesa não encontrada",
                 },
-                {
-                    status: 404,
-                }
+                { status: 404 }
             );
         }
 
@@ -177,7 +188,6 @@ export async function PUT(
             success: true,
             despesa,
         });
-
     } catch (error) {
         console.error(error);
 
@@ -186,9 +196,7 @@ export async function PUT(
                 success: false,
                 message: "Erro ao atualizar despesa",
             },
-            {
-                status: 500,
-            }
+            { status: 500 }
         );
     }
 }

@@ -27,6 +27,10 @@ interface FormData {
 
     recorrente: boolean;
     mesAnoFim: string;
+
+    // NOVOS CAMPOS
+    valorPago: string;
+    dataPagamento: string;
 }
 
 interface Cartao {
@@ -55,6 +59,10 @@ export default function EditarDespesaPage() {
         observacao: "",
         recorrente: false,
         mesAnoFim: "",
+
+        // NOVOS
+        valorPago: "",
+        dataPagamento: "",
     });
 
     const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -112,29 +120,31 @@ export default function EditarDespesaPage() {
                     ? despesa.dataVencimento.slice(0, 10)
                     : "",
 
-                formaPagamento:
-                    despesa.formaPagamento || "PIX",
+                formaPagamento: despesa.formaPagamento || "PIX",
 
-                cartaoId:
-                    despesa.cartaoId || "",
+                cartaoId: despesa.cartaoId || "",
 
-                observacao:
-                    despesa.observacao || "",
+                observacao: despesa.observacao || "",
 
-                recorrente:
-                    despesa.recorrente || false,
+                recorrente: despesa.recorrente || false,
 
                 mesAnoFim: despesa.mesAnoFim
                     ? despesa.mesAnoFim.slice(0, 7)
                     : "",
-            });
 
+                // ✅ NOVOS CAMPOS
+                valorPago: despesa.valorPago
+                    ? String(despesa.valorPago)
+                    : "",
+
+                dataPagamento: despesa.dataPagamento
+                    ? despesa.dataPagamento.slice(0, 10)
+                    : "",
+            });
         } catch (error) {
             console.error(error);
 
-            toast.error(
-                "Erro ao carregar despesa."
-            );
+            toast.error("Erro ao carregar despesa.");
         }
     }
 
@@ -209,7 +219,9 @@ export default function EditarDespesaPage() {
                     },
                     body: JSON.stringify({
                         mesAno: formData.mesAno,
+
                         categoria: formData.categoria,
+
                         valor: Number(formData.valor),
 
                         dataVencimento: formData.dataVencimento,
@@ -225,9 +237,19 @@ export default function EditarDespesaPage() {
 
                         recorrente: formData.recorrente,
 
-                        mesAnoFim: formData.recorrente
-                            ? formData.mesAnoFim
-                            : null,
+                        mesAnoFim:
+                            formData.recorrente
+                                ? formData.mesAnoFim
+                                : null,
+
+                        // NOVOS CAMPOS
+                        valorPago:
+                            formData.valorPago === ""
+                                ? null
+                                : Number(formData.valorPago),
+
+                        dataPagamento:
+                            formData.dataPagamento || null,
                     }),
                 }
             );
@@ -295,6 +317,10 @@ export default function EditarDespesaPage() {
         formData.cartaoId,
         cartaoSelecionado,
     ]);
+
+    const valorPago = Number(formData.valorPago || 0);
+
+    const estaPago = valorPago > 0;
 
     return (
         <div className="space-y-6">
@@ -477,7 +503,7 @@ export default function EditarDespesaPage() {
                                     ))}
                                 </select>
 
-                                {cartaoSelecionado && (
+                                {/* {cartaoSelecionado && (
                                     <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
                                         <p className="text-sm text-blue-800">
                                             Vencimento da fatura: dia{" "}
@@ -488,28 +514,99 @@ export default function EditarDespesaPage() {
                                             </strong>
                                         </p>
                                     </div>
-                                )}
+                                )} */}
                             </div>
                         )}
 
+                        {/* PAGAMENTO REAL */}
+                        <div
+                            className={`
+        rounded-xl border-2 p-5 shadow-sm space-y-5 transition
+        ${estaPago
+                                    ? "border-green-300 bg-green-100/70"
+                                    : "border-yellow-300 bg-yellow-100/70"
+                                }
+    `}
+                        >
+
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    💰 Pagamento realizado
+                                </h3>
+
+                                {estaPago ? (
+                                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                        PAGO
+                                    </span>
+                                ) : (
+                                    <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                                        NÃO PAGO
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                {/* VALOR PAGO */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">
+                                        Valor Pago
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        name="valorPago"
+                                        value={formData.valorPago}
+                                        onChange={handleChange}
+                                        className={`
+        mt-2 w-full rounded-lg border px-4 py-2 text-sm transition
+        ${estaPago
+                                                ? "border-green-400 bg-green-50"
+                                                : "border-slate-300"
+                                            }
+    `}
+                                    />
+
+                                </div>
+
+                                {/* DATA PAGAMENTO */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">
+                                        Data do Pagamento
+                                    </label>
+
+                                    <input
+                                        type="date"
+                                        name="dataPagamento"
+                                        value={formData.dataPagamento}
+                                        onChange={handleChange}
+                                        className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                                    />
+                                </div>
+
+                            </div>
+                        </div>
+
                         {/* RECORRENTE */}
-                        <div className="rounded-xl border border-slate-200 p-4">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 opacity-90">
 
                             <label className="flex items-center gap-3">
                                 <input
                                     type="checkbox"
                                     checked={formData.recorrente}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            recorrente: e.target.checked,
-                                        }))
-                                    }
+                                    disabled
+                                    readOnly
+                                    className="h-5 w-5 accent-green-600 cursor-not-allowed opacity-100        "
                                 />
 
-                                <span className="font-medium text-slate-700">
+                                <span
+                                    className={`font-medium ${formData.recorrente ? "text-green-700" : "text-slate-700"}`}>
                                     Despesa recorrente
+                                    <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                                        NÃO PODE SER ALTERADA
+                                    </span>
                                 </span>
+
                             </label>
 
                             <p className="mt-2 text-sm text-slate-500">

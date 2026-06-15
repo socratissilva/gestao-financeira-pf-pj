@@ -39,6 +39,10 @@ export interface IDespesaPrevista extends Document {
   mesAnoFim?: Date | null;
 
   ativa: boolean;
+
+  // ✅ NOVOS CAMPOS
+  valorPago?: number | null;
+  dataPagamento?: Date | null;
 }
 
 const DespesaPrevistaSchema =
@@ -64,6 +68,17 @@ const DespesaPrevistaSchema =
         type: Number,
         required: true,
         min: 0,
+      },
+
+      valorPago: {
+        type: Number,
+        default: null,
+        min: 0,
+      },
+
+      dataPagamento: {
+        type: Date,
+        default: null,
       },
 
       dataVencimento: {
