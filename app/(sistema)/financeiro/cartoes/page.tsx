@@ -88,15 +88,7 @@ export default function CartoesPage() {
     const cartoesComResumo = useMemo(() => {
         if (!cartoes.length) return [];
 
-        const startDate = new Date(`${startMonth}-01T00:00:00`);
-
-        const endDate = new Date(`${endMonth}-01T23:59:59`);
-        endDate.setMonth(endDate.getMonth() + 1);
-        endDate.setDate(0);
-
-
-
-        return cartoes.map((cartao) => {
+            return cartoes.map((cartao) => {
             const idCartao = String(cartao._id);
 
             const gastosDoCartao = despesas.filter(
@@ -137,11 +129,16 @@ export default function CartoesPage() {
 
             if (filterType === "period") {
                 comprasFiltradas = gastosDoCartao.filter((d) => {
-                    const data = new Date(
-                        d.mesAno
-                    );
+                    const data = new Date(d.mesAno);
 
-                    return data >= startDate && data <= endDate;
+                    const competencia = `${data.getUTCFullYear()}-${String(
+                        data.getUTCMonth() + 1
+                    ).padStart(2, "0")}`;
+
+                    return (
+                        competencia >= startMonth &&
+                        competencia <= endMonth
+                    );
                 });
             }
 
@@ -208,10 +205,14 @@ export default function CartoesPage() {
 
             const disponivel = limite - totalEmAbertoGlobal;
 
+            const percentualUtilizado =
+                limite > 0
+                    ? (totalEmAbertoGlobal / limite) * 100
+                    : 0;
+
             return {
                 ...cartao,
 
-                // dados do filtro atual
                 totalGasto,
 
                 quantidadeCompras: comprasFiltradas.length,
@@ -219,10 +220,11 @@ export default function CartoesPage() {
                 abertas: abertas.length,
                 pagas: pagas.length,
 
-                // dados globais do cartão
                 totalEmAberto: totalEmAbertoGlobal,
 
                 disponivel,
+
+                percentualUtilizado,
             };
         });
     }, [
@@ -416,7 +418,7 @@ export default function CartoesPage() {
                                 className="h-2 bg-blue-500 rounded-full"
                                 style={{
                                     width: `${Math.min(
-                                        (cartao.totalGasto / (cartao.limite || 1)) * 100,
+                                        cartao.percentualUtilizado,
                                         100
                                     )}%`,
                                 }}
