@@ -267,9 +267,26 @@ export default function DespesasPage() {
     }, [despesasFiltradas]);
 
     const despesasAgrupadas = useMemo(() => {
+        let lista = [...despesasFiltradas];
+
+        // 🔥 SÓ ORDENA POR VENCIMENTO NO MÊS
+        if (filterType === "month") {
+            lista.sort((a, b) => {
+                const da = a.dataVencimento
+                    ? new Date(a.dataVencimento).getTime()
+                    : 0;
+
+                const db = b.dataVencimento
+                    ? new Date(b.dataVencimento).getTime()
+                    : 0;
+
+                return da - db; // mais próximo primeiro
+            });
+        }
+
         const grupos: Record<string, any[]> = {};
 
-        despesasFiltradas.forEach((despesa) => {
+        lista.forEach((despesa) => {
             const data = new Date(despesa.dataProjecao || despesa.mesAno);
 
             const chave = `${data.getUTCFullYear()}-${String(
@@ -283,7 +300,7 @@ export default function DespesasPage() {
         return Object.entries(grupos).sort(([a], [b]) =>
             a.localeCompare(b)
         );
-    }, [despesasFiltradas]);
+    }, [despesasFiltradas, filterType]);
 
     if (loading) return <div className="p-6">Carregando...</div>;
     return (
