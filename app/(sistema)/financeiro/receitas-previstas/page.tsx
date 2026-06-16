@@ -195,9 +195,9 @@ export default function ReceitasPage() {
       return info.ano.toString();
     });
 
-    return [...new Set(anos)]
-      .sort()
-      .reverse();
+    return [...new Set(anos)].sort(
+      (a, b) => Number(a) - Number(b)
+    );
   }, [receitasExpandidas]);
 
   useEffect(() => {
@@ -211,9 +211,32 @@ export default function ReceitasPage() {
 
     if (mesesDisponiveis.includes(mesAtual)) {
       setSelectedMonth(mesAtual);
-    } else {
-      setSelectedMonth(mesesDisponiveis[0]);
+      return;
     }
+
+    const ordenadoPorProximidade = [...mesesDisponiveis].sort(
+      (a, b) => {
+        const [ma, ya] = a.split("-");
+        const [mb, yb] = b.split("-");
+
+        const da = new Date(
+          Number(ya),
+          Number(ma) - 1
+        ).getTime();
+
+        const db = new Date(
+          Number(yb),
+          Number(mb) - 1
+        ).getTime();
+
+        return (
+          Math.abs(da - hoje.getTime()) -
+          Math.abs(db - hoje.getTime())
+        );
+      }
+    );
+
+    setSelectedMonth(ordenadoPorProximidade[0]);
   }, [mesesDisponiveis]);
 
 
@@ -272,9 +295,16 @@ export default function ReceitasPage() {
 
     if (anosDisponiveis.includes(anoAtual)) {
       setSelectedYear(anoAtual);
-    } else {
-      setSelectedYear(anosDisponiveis[0]);
+      return;
     }
+
+    const ordenadoPorProximidade = [...anosDisponiveis].sort(
+      (a, b) =>
+        Math.abs(Number(a) - Number(anoAtual)) -
+        Math.abs(Number(b) - Number(anoAtual))
+    );
+
+    setSelectedYear(ordenadoPorProximidade[0]);
   }, [anosDisponiveis]);
 
   const totalReceitas = useMemo(() => {

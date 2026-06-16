@@ -147,8 +147,8 @@ export default function DespesasPage() {
             const [mesB, anoB] = b.split("-");
 
             return (
-                new Date(Number(anoB), Number(mesB) - 1).getTime() -
-                new Date(Number(anoA), Number(mesA) - 1).getTime()
+                new Date(Number(anoA), Number(mesA) - 1).getTime() -
+                new Date(Number(anoB), Number(mesB) - 1).getTime()
             );
         });
     }, [despesasExpandidas]);
@@ -159,7 +159,9 @@ export default function DespesasPage() {
             return info.ano.toString();
         });
 
-        return [...new Set(anos)].sort().reverse();
+        return [...new Set(anos)].sort(
+            (a, b) => Number(a) - Number(b)
+        );
     }, [despesasExpandidas]);
 
     // 🔥 INICIALIZAÇÃO CORRETA (NÃO SOBRESCREVE USUÁRIO)

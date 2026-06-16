@@ -39,6 +39,7 @@ export default function CartoesPage() {
             const cartoesData = await resCartoes.json();
             const despesasData = await resDespesas.json();
 
+
             setCartoes(cartoesData || []);
             setDespesas(despesasData.despesas_previstas || []);
         } finally {
@@ -58,7 +59,10 @@ export default function CartoesPage() {
 
     const getCompetencia = (dateStr: string) => {
         const data = new Date(dateStr);
-        return `${String(data.getMonth() + 1).padStart(2, "0")}-${data.getFullYear()}`;
+
+        return `${String(
+            data.getUTCMonth() + 1
+        ).padStart(2, "0")}-${data.getUTCFullYear()}`;
     };
 
     const mesesPT = [
@@ -90,11 +94,30 @@ export default function CartoesPage() {
         endDate.setMonth(endDate.getMonth() + 1);
         endDate.setDate(0);
 
+
+
         return cartoes.map((cartao) => {
             const idCartao = String(cartao._id);
 
             const gastosDoCartao = despesas.filter(
                 (d) => String(d.cartaoId?._id || d.cartaoId) === idCartao
+            );
+
+            const abertasGlobais = gastosDoCartao.filter((d) => {
+                const valor = Number(d.valor || 0);
+                const pago = Number(d.valorPago || 0);
+
+                return pago < valor;
+            });
+
+            const totalEmAbertoGlobal = abertasGlobais.reduce(
+                (acc, d) => {
+                    const valor = Number(d.valor || 0);
+                    const pago = Number(d.valorPago || 0);
+
+                    return acc + Math.max(valor - pago, 0);
+                },
+                0
             );
 
             // -------------------------
@@ -105,7 +128,7 @@ export default function CartoesPage() {
             if (filterType === "year") {
                 comprasFiltradas = gastosDoCartao.filter((d) => {
                     const ano = new Date(
-                        d.dataVencimento || d.mesAno
+                        d.mesAno
                     ).getFullYear();
 
                     return ano === Number(selectedYear);
@@ -115,7 +138,7 @@ export default function CartoesPage() {
             if (filterType === "period") {
                 comprasFiltradas = gastosDoCartao.filter((d) => {
                     const data = new Date(
-                        d.dataVencimento || d.mesAno
+                        d.mesAno
                     );
 
                     return data >= startDate && data <= endDate;
@@ -125,7 +148,7 @@ export default function CartoesPage() {
             if (filterType === "month") {
                 comprasFiltradas = gastosDoCartao.filter((d) => {
                     const competencia = getCompetencia(
-                        d.dataVencimento || d.mesAno
+                        d.mesAno
                     );
 
                     return competencia === selectedMonth;
@@ -150,15 +173,26 @@ export default function CartoesPage() {
                 return pago >= valor;
             });
 
-            // -------------------------
-            // TOTAL GASTO
-            // -------------------------
+
+            console.table(
+                comprasFiltradas.map((d) => ({
+                    valor: d.valor,
+                    valorPago: d.valorPago,
+                    restante:
+                        Number(d.valor || 0) -
+                        Number(d.valorPago || 0),
+                    categoria: d.categoria,
+                    mesAno: d.mesAno,
+                }))
+            );
+
             const totalGasto = abertas.reduce((acc, d) => {
                 const valor = Number(d.valor || 0);
                 const pago = Number(d.valorPago || 0);
 
                 return acc + Math.max(valor - pago, 0);
             }, 0);
+
 
             // -------------------------
             // TOTAL EM ABERTO
@@ -172,19 +206,23 @@ export default function CartoesPage() {
 
             const limite = Number(cartao.limite || 0);
 
-            const disponivel = limite - totalEmAberto;
+            const disponivel = limite - totalEmAbertoGlobal;
 
             return {
                 ...cartao,
-                totalGasto,
-                totalEmAberto,
-                disponivel,
 
-                // quantidade respeita o filtro
+                // dados do filtro atual
+                totalGasto,
+
                 quantidadeCompras: comprasFiltradas.length,
 
                 abertas: abertas.length,
                 pagas: pagas.length,
+
+                // dados globais do cartão
+                totalEmAberto: totalEmAbertoGlobal,
+
+                disponivel,
             };
         });
     }, [
@@ -203,18 +241,31 @@ export default function CartoesPage() {
     const mesesDisponiveis = useMemo(() => {
         const meses = despesasCredito.map((d) => {
             const data = new Date(d.dataVencimento || d.mesAno);
+
             return `${String(data.getUTCMonth() + 1).padStart(2, "0")}-${data.getUTCFullYear()}`;
         });
 
-        return [...new Set(meses)].sort();
+        return [...new Set(meses)].sort((a, b) => {
+            const [mesA, anoA] = a.split("-");
+            const [mesB, anoB] = b.split("-");
+
+            return (
+                new Date(Number(anoA), Number(mesA) - 1).getTime() -
+                new Date(Number(anoB), Number(mesB) - 1).getTime()
+            );
+        });
     }, [despesasCredito]);
 
     const anosDisponiveis = useMemo(() => {
         const anos = despesasCredito.map((d) =>
-            new Date(d.dataVencimento || d.mesAno).getUTCFullYear().toString()
+            new Date(
+                d.dataVencimento || d.mesAno
+            ).getUTCFullYear().toString()
         );
 
-        return [...new Set(anos)].sort().reverse();
+        return [...new Set(anos)].sort(
+            (a, b) => Number(a) - Number(b)
+        );
     }, [despesasCredito]);
 
     // -------------------------
