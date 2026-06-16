@@ -63,18 +63,21 @@ export async function GET() {
     );
   }
 }
-
 export async function POST(req: Request) {
   try {
     await connectDB();
 
     const session = await getServerSession(authOptions);
 
-
     if (!session?.user?.id) {
       return NextResponse.json(
-        { success: false, message: "Não autenticado" },
-        { status: 401 }
+        {
+          success: false,
+          message: "Não autenticado",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
@@ -94,17 +97,23 @@ export async function POST(req: Request) {
       observacao,
     } = body;
 
-    // helper
+
     function gerarMeses(inicio: string, fim: string) {
       const meses: string[] = [];
 
       let [ano, mes] = inicio.split("-").map(Number);
       const [anoFim, mesFim] = fim.split("-").map(Number);
 
-      while (ano < anoFim || (ano === anoFim && mes <= mesFim)) {
-        meses.push(`${ano}-${String(mes).padStart(2, "0")}`);
+      while (
+        ano < anoFim ||
+        (ano === anoFim && mes <= mesFim)
+      ) {
+        meses.push(
+          `${ano}-${String(mes).padStart(2, "0")}`
+        );
 
         mes++;
+
         if (mes > 12) {
           mes = 1;
           ano++;
@@ -114,28 +123,59 @@ export async function POST(req: Request) {
       return meses;
     }
 
-    // 🔥 NÃO RECORRENTE
+    // ==================================================
+    // NÃO RECORRENTE
+    // ==================================================
     if (!recorrente) {
+      const [anoMes, mesMes] = mesAno
+        .split("-")
+        .map(Number);
+
       const despesa = await DespesaPrevista.create({
         userId: session.user.id,
-        mesAno: new Date(`${mesAno}-01`),
+
+        mesAno: new Date(
+          anoMes,
+          mesMes - 1,
+          1
+        ),
+
         categoria,
+
         valor: Number(valor),
 
-        valorPago: null,
-        dataPagamento: null,
+        valorPago:
+          valorPago !== null &&
+            valorPago !== undefined &&
+            valorPago !== ""
+            ? Number(valorPago)
+            : null,
+
+        dataPagamento:
+          dataPagamento || null,
 
         dataVencimento: dataVencimento
-          ? new Date(`${dataVencimento}T12:00:00`)
+          ? new Date(
+            `${dataVencimento}T12:00:00`
+          )
           : null,
+
         formaPagamento,
+
         cartaoId:
-          formaPagamento === "CREDITO"
-            ? new mongoose.Types.ObjectId(cartaoId)
+          formaPagamento === "CREDITO" &&
+            cartaoId
+            ? new mongoose.Types.ObjectId(
+              cartaoId
+            )
             : null,
+
         observacao,
+
         recorrente: false,
+
         mesAnoFim: null,
+
         ativa: true,
       });
 
@@ -145,16 +185,41 @@ export async function POST(req: Request) {
       });
     }
 
-    // 🔥 RECORRENTE (AQUI ESTAVA O BUG)
-    const meses = gerarMeses(mesAno, mesAnoFim);
+    // ==================================================
+    // RECORRENTE
+    // ==================================================
+
+    if (recorrente && !mesAnoFim) {
+      console.error(
+        "ERRO: recorrente=true mas mesAnoFim não foi informado"
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: "mesAnoFim não informado",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+    const meses = gerarMeses(
+      mesAno,
+      mesAnoFim
+    );
+
 
     const inserts = meses.map((m) => {
-      const [ano, mes] = m.split("-").map(Number);
+      const [ano, mes] = m
+        .split("-")
+        .map(Number);
 
       let vencimentoFinal = null;
 
       if (dataVencimento) {
-        const partes = dataVencimento.split("-");
+        const partes =
+          dataVencimento.split("-");
 
         const dia = Number(partes[2]);
 
@@ -170,42 +235,104 @@ export async function POST(req: Request) {
 
       return {
         userId: session.user.id,
-        mesAno: new Date(`${m}-01`),
+
+        mesAno: new Date(
+          ano,
+          mes - 1,
+          1
+        ),
+
         categoria,
+
         valor: Number(valor),
 
         valorPago: null,
+
         dataPagamento: null,
 
-        dataVencimento: vencimentoFinal, // ✅ agora correto por mês
+        dataVencimento: vencimentoFinal,
+
         formaPagamento,
+
         cartaoId:
-          formaPagamento === "CREDITO"
-            ? new mongoose.Types.ObjectId(cartaoId)
+          formaPagamento === "CREDITO" &&
+            cartaoId
+            ? new mongoose.Types.ObjectId(
+              cartaoId
+            )
             : null,
+
         observacao,
+
         recorrente: true,
-        mesAnoFim: new Date(`${mesAnoFim}-01`),
+
+        mesAnoFim: (() => {
+          const [anoFim, mesFim] =
+            mesAnoFim
+              .split("-")
+              .map(Number);
+
+          return new Date(
+            anoFim,
+            mesFim - 1,
+            1
+          );
+        })(),
+
         ativa: true,
       };
     });
 
-    const despesa = await DespesaPrevista.insertMany(inserts);
+    try {
+      const despesasCriadas =
+        await DespesaPrevista.insertMany(
+          inserts,
+          {
+            ordered: false,
+          }
+        );
+      return NextResponse.json({
+        success: true,
+        despesas: despesasCriadas,
+        totalCriados:
+          despesasCriadas.length,
+      });
+    } catch (error: any) {
+      console.error(
+        "INSERT MANY ERROR:",
+        error
+      );
 
-    return NextResponse.json({
-      success: true,
-      despesa,
-      totalCriados: despesa.length,
-    });
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            error?.message ||
+            "Erro ao inserir recorrências",
+
+          writeErrors:
+            error?.writeErrors || [],
+        },
+        {
+          status: 500,
+        }
+      );
+    }
   } catch (error) {
-    console.error("Erro ao cadastrar despesa:", error);
+    console.error(
+      "Erro ao cadastrar despesa:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: "Erro ao cadastrar despesa",
+        message:
+          "Erro ao cadastrar despesa",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

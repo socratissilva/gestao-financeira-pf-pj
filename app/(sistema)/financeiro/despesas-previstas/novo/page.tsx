@@ -158,6 +158,25 @@ export default function NovoGanho() {
             newErrors.mesAnoFim = "Informe o mês/ano final da recorrência";
         }
 
+        if (
+            formData.recorrente &&
+            formData.mesAno &&
+            formData.mesAnoFim
+        ) {
+            const inicio = Number(
+                formData.mesAno.replace("-", "")
+            );
+
+            const fim = Number(
+                formData.mesAnoFim.replace("-", "")
+            );
+
+            if (fim < inicio) {
+                newErrors.mesAnoFim =
+                    "O mês final deve ser maior ou igual ao mês inicial";
+            }
+        }
+
         setErrors(newErrors);
 
         return Object.keys(newErrors).length === 0;
@@ -475,6 +494,9 @@ export default function NovoGanho() {
                                         setFormData((prev) => ({
                                             ...prev,
                                             recorrente: e.target.checked,
+                                            mesAnoFim: e.target.checked
+                                                ? prev.mesAno
+                                                : "",
                                         }))
                                     }
                                 />
