@@ -32,8 +32,8 @@ export default function CartoesPage() {
             setLoading(true);
 
             const [resCartoes, resDespesas] = await Promise.all([
-                fetch("/api/financeiro/cartoes"),
-                fetch("/api/financeiro/despesas-previstas"),
+                fetch("/api/financeiro/cartoes", { cache: "no-store" }),
+                fetch("/api/financeiro/despesas-previstas", { cache: "no-store" }),
             ]);
 
             const cartoesData = await resCartoes.json();
@@ -41,8 +41,6 @@ export default function CartoesPage() {
 
             setCartoes(cartoesData || []);
             setDespesas(despesasData.despesas_previstas || []);
-        } catch (err) {
-            console.error("ERRO CARREGAMENTO:", err);
         } finally {
             setLoading(false);
         }
@@ -50,6 +48,12 @@ export default function CartoesPage() {
 
     useEffect(() => {
         carregarDados();
+
+        const onFocus = () => carregarDados();
+
+        window.addEventListener("focus", onFocus);
+
+        return () => window.removeEventListener("focus", onFocus);
     }, []);
 
     const getCompetencia = (dateStr: string) => {
@@ -64,10 +68,7 @@ export default function CartoesPage() {
 
     const formatCompetencia = (competencia: string) => {
         const [mes, ano] = competencia.split("-");
-
-        const mesNome = mesesPT[Number(mes) - 1];
-
-        return `${mesNome}/${ano}`;
+        return `${mesesPT[Number(mes) - 1]}/${ano}`;
     };
 
     // -------------------------
@@ -78,132 +79,112 @@ export default function CartoesPage() {
     }, [despesas]);
 
     // -------------------------
-    // FILTRO PRINCIPAL
-    // -------------------------
-    const despesasFiltradas = useMemo(() => {
-        return despesasCredito.filter((despesa: any) => {
-            const competencia = getCompetencia(
-                despesa.dataVencimento || despesa.mesAno
-            );
-
-            if (filterType === "month") {
-                return competencia === selectedMonth;
-            }
-
-            if (filterType === "year") {
-                return competencia.endsWith(selectedYear);
-            }
-
-            if (filterType === "period") {
-                const start = startMonth; // "2026-06"
-                const end = endMonth;     // "2026-07"
-
-                const startDate = new Date(start + "-01");
-                const endDate = new Date(end + "-01");
-
-                return despesasCredito.some(() => {
-                    const competencia = getCompetencia(despesa.dataVencimento || despesa.mesAno);
-
-                    const compDate = new Date((competencia.split("-")[1] + "-" + competencia.split("-")[0]) + "-01");
-
-                    return compDate >= startDate && compDate <= endDate;
-                });
-            }
-
-            return true;
-        });
-    }, [despesasCredito, filterType, selectedMonth, selectedYear, startMonth, endMonth]);
-
-    // -------------------------
-    // NORMALIZA ID (CRÍTICO)
-    // -------------------------
-    const normalizeId = (id: any) => {
-        if (!id) return null;
-
-        if (typeof id === "string") return id;
-
-        if (typeof id === "object" && id._id) return id._id;
-
-        return null;
-    };
-
-    // -------------------------
-    // RESUMO CARTÕES
+    // RESUMO CARTÕES (CORRIGIDO)
     // -------------------------
     const cartoesComResumo = useMemo(() => {
         if (!cartoes.length) return [];
 
-        const startDate = new Date(startMonth + "-01");
-        const endDate = new Date(endMonth + "-01");
+        const startDate = new Date(`${startMonth}-01T00:00:00`);
 
+        const endDate = new Date(`${endMonth}-01T23:59:59`);
         endDate.setMonth(endDate.getMonth() + 1);
-        endDate.setDate(0); // último dia do mês
+        endDate.setDate(0);
 
         return cartoes.map((cartao) => {
             const idCartao = String(cartao._id);
 
-            const gastosDoCartao = despesas.filter((d) => {
-                return String(d.cartaoId?._id || d.cartaoId) === idCartao;
-            });
+            const gastosDoCartao = despesas.filter(
+                (d) => String(d.cartaoId?._id || d.cartaoId) === idCartao
+            );
 
-            let valoresExpandidos: number[] = [];
+            // -------------------------
+            // FILTRO DE EXIBIÇÃO
+            // -------------------------
+            let comprasFiltradas = gastosDoCartao;
 
             if (filterType === "year") {
-                valoresExpandidos = gastosDoCartao
-                    .filter((d) => {
-                        const ano = new Date(
-                            d.dataVencimento || d.mesAno
-                        ).getFullYear();
+                comprasFiltradas = gastosDoCartao.filter((d) => {
+                    const ano = new Date(
+                        d.dataVencimento || d.mesAno
+                    ).getFullYear();
 
-                        return ano === Number(selectedYear);
-                    })
-                    .map((d) => Number(d.valor));
+                    return ano === Number(selectedYear);
+                });
             }
 
             if (filterType === "period") {
-                valoresExpandidos = gastosDoCartao
-                    .filter((d) => {
-                        const data = new Date(
-                            d.dataVencimento || d.mesAno
-                        );
+                comprasFiltradas = gastosDoCartao.filter((d) => {
+                    const data = new Date(
+                        d.dataVencimento || d.mesAno
+                    );
 
-                        return data >= startDate && data <= endDate;
-                    })
-                    .map((d) => Number(d.valor));
+                    return data >= startDate && data <= endDate;
+                });
             }
 
             if (filterType === "month") {
-                valoresExpandidos = gastosDoCartao
-                    .filter((d) => {
-                        const competencia = getCompetencia(
-                            d.dataVencimento || d.mesAno
-                        );
-                        return competencia === selectedMonth;
-                    })
-                    .map((d) => Number(d.valor));
+                comprasFiltradas = gastosDoCartao.filter((d) => {
+                    const competencia = getCompetencia(
+                        d.dataVencimento || d.mesAno
+                    );
+
+                    return competencia === selectedMonth;
+                });
             }
 
-            const totalGasto = valoresExpandidos.reduce(
-                (acc, val) => acc + val,
-                0
-            );
+            // -------------------------
+            // ABERTAS E PAGAS
+            // AGORA RESPEITANDO O FILTRO
+            // -------------------------
+            const abertas = comprasFiltradas.filter((d) => {
+                const pago = Number(d.valorPago || 0);
+                const valor = Number(d.valor || 0);
+
+                return pago < valor;
+            });
+
+            const pagas = comprasFiltradas.filter((d) => {
+                const pago = Number(d.valorPago || 0);
+                const valor = Number(d.valor || 0);
+
+                return pago >= valor;
+            });
+
+            // -------------------------
+            // TOTAL GASTO
+            // -------------------------
+            const totalGasto = abertas.reduce((acc, d) => {
+                const valor = Number(d.valor || 0);
+                const pago = Number(d.valorPago || 0);
+
+                return acc + Math.max(valor - pago, 0);
+            }, 0);
+
+            // -------------------------
+            // TOTAL EM ABERTO
+            // -------------------------
+            const totalEmAberto = abertas.reduce((acc, d) => {
+                const valor = Number(d.valor || 0);
+                const pago = Number(d.valorPago || 0);
+
+                return acc + Math.max(valor - pago, 0);
+            }, 0);
 
             const limite = Number(cartao.limite || 0);
 
-            // TODAS as despesas do cartão, independente do filtro
-            const totalLancadoCartao = gastosDoCartao.reduce(
-                (acc, despesa) => acc + Number(despesa.valor || 0),
-                0
-            );
-
-            const disponivel = limite - totalLancadoCartao;
+            const disponivel = limite - totalEmAberto;
 
             return {
                 ...cartao,
                 totalGasto,
+                totalEmAberto,
                 disponivel,
-                totalLancadoCartao,
-                quantidadeCompras: valoresExpandidos.length,
+
+                // quantidade respeita o filtro
+                quantidadeCompras: comprasFiltradas.length,
+
+                abertas: abertas.length,
+                pagas: pagas.length,
             };
         });
     }, [
@@ -217,7 +198,7 @@ export default function CartoesPage() {
     ]);
 
     // -------------------------
-    // OPÇÕES DE FILTRO
+    // OPÇÕES
     // -------------------------
     const mesesDisponiveis = useMemo(() => {
         const meses = despesasCredito.map((d) => {
@@ -241,26 +222,26 @@ export default function CartoesPage() {
     // -------------------------
     useEffect(() => {
         if (mesesDisponiveis.length) {
-            setSelectedMonth(mesesDisponiveis.includes(mesAtual) ? mesAtual : mesesDisponiveis[0]);
+            setSelectedMonth(
+                mesesDisponiveis.includes(mesAtual)
+                    ? mesAtual
+                    : mesesDisponiveis[0]
+            );
         }
     }, [mesesDisponiveis, mesAtual]);
 
     useEffect(() => {
         if (anosDisponiveis.length) {
-            setSelectedYear(anosDisponiveis.includes(anoAtual) ? anoAtual : anosDisponiveis[0]);
+            setSelectedYear(
+                anosDisponiveis.includes(anoAtual)
+                    ? anoAtual
+                    : anosDisponiveis[0]
+            );
         }
     }, [anosDisponiveis, anoAtual]);
 
-    // -------------------------
-    // LOADING
-    // -------------------------
-    if (loading) {
-        return <div className="p-6">Carregando...</div>;
-    }
+    if (loading) return <div className="p-6">Carregando...</div>;
 
-    // -------------------------
-    // UI
-    // -------------------------
     return (
         <div className="space-y-6">
 
@@ -283,42 +264,64 @@ export default function CartoesPage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
 
-                    <div className="flex flex-wrap items-center gap-5">
-
-                        <label className="flex items-center gap-2">
+                    <div className="flex gap-5">
+                        <label>
                             <input type="radio" checked={filterType === "month"} onChange={() => setFilterType("month")} />
-                            Por Mês
+                            Mês
                         </label>
 
-                        <label className="flex items-center gap-2">
+                        <label>
                             <input type="radio" checked={filterType === "year"} onChange={() => setFilterType("year")} />
-                            Por Ano
+                            Ano
                         </label>
 
-                        <label className="flex items-center gap-2">
+                        <label>
                             <input type="radio" checked={filterType === "period"} onChange={() => setFilterType("period")} />
-                            Por Período
+                            Período
                         </label>
                     </div>
 
                     {filterType === "month" && (
-                        <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-                            {mesesDisponiveis.map((m) => <option key={m} value={m}>
-                                {formatCompetencia(m)}
-                            </option>)}
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm"
+                        >
+                            {mesesDisponiveis.map((m) => (
+                                <option key={m} value={m}>
+                                    {formatCompetencia(m)}
+                                </option>
+                            ))}
                         </select>
                     )}
 
                     {filterType === "year" && (
-                        <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                            {anosDisponiveis.map((a) => <option key={a}>{a}</option>)}
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm"
+                        >
+                            {anosDisponiveis.map((a) => (
+                                <option key={a}>{a}</option>
+                            ))}
                         </select>
                     )}
 
                     {filterType === "period" && (
                         <div className="flex gap-2">
-                            <input type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} />
-                            <input type="month" value={endMonth} onChange={(e) => setEndMonth(e.target.value)} />
+                            <input
+                                type="month"
+                                value={startMonth}
+                                onChange={(e) => setStartMonth(e.target.value)}
+                                className="rounded-lg border border-slate-300 px-3 py-2"
+                            />
+
+                            <input
+                                type="month"
+                                value={endMonth}
+                                onChange={(e) => setEndMonth(e.target.value)}
+                                className="rounded-lg border border-slate-300 px-3 py-2"
+                            />
                         </div>
                     )}
                 </div>
@@ -330,9 +333,8 @@ export default function CartoesPage() {
                     <div
                         key={cartao._id}
                         onClick={() => router.push(`/financeiro/cartoes/${cartao._id}`)}
-                        className="rounded-2xl border bg-white p-5 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 hover:bg-slate-50"
+                        className="rounded-2xl border bg-white p-5 shadow-sm cursor-pointer hover:shadow-lg hover:-translate-y-1 transition"
                     >
-
                         <div className="flex justify-between">
                             <div className="flex gap-2 items-center">
                                 <CreditCard className="h-5 w-5" />
@@ -345,7 +347,11 @@ export default function CartoesPage() {
                         </div>
 
                         <div className="mt-4 flex justify-between text-sm">
-                            <span>{cartao.quantidadeCompras} compras</span>
+                            <span>
+                                {cartao.quantidadeCompras}{" "}
+                                {cartao.quantidadeCompras === 1 ? "compra" : "compras"}
+                            </span>
+
                             <span className="text-red-600 font-semibold">
                                 {cartao.totalGasto.toLocaleString("pt-BR", {
                                     style: "currency",
@@ -369,30 +375,18 @@ export default function CartoesPage() {
                         <div className="mt-2 flex justify-between text-xs text-slate-500">
                             <span>
                                 Limite:{" "}
-                                {Number(cartao.limite || 0).toLocaleString(
-                                    "pt-BR",
-                                    {
-                                        style: "currency",
-                                        currency: "BRL",
-                                    }
-                                )}
+                                {Number(cartao.limite || 0).toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                })}
                             </span>
 
-                            <span
-                                className={
-                                    cartao.disponivel < 0
-                                        ? "text-red-600 font-medium"
-                                        : "text-green-600 font-medium"
-                                }
-                            >
+                            <span className={cartao.disponivel < 0 ? "text-red-600" : "text-green-600"}>
                                 Disponível:{" "}
-                                {cartao.disponivel.toLocaleString(
-                                    "pt-BR",
-                                    {
-                                        style: "currency",
-                                        currency: "BRL",
-                                    }
-                                )}
+                                {cartao.disponivel.toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                })}
                             </span>
                         </div>
                     </div>

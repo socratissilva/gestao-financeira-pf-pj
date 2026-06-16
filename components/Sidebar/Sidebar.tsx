@@ -77,8 +77,7 @@ const NAV: NavEntry[] = [
     group: "Financeiro",
     children: [
       { label: "Visão Geral", href: "/financeiro", icon: Wallet },
-      { label: "Receitas Provisionadas", href: "/financeiro/receitas-previstas", icon: TrendingUp },
-      { label: "Receitas Realizadas", href: "/financeiro/receitas-realizadas", icon: TrendingUp },
+      { label: "Receitas", href: "/financeiro/receitas-previstas", icon: TrendingUp },
       { label: "Despesas", href: "/financeiro/despesas-previstas", icon: TrendingDown },
       { label: "Cartões", href: "/financeiro/cartoes", icon: CreditCard },
     ],

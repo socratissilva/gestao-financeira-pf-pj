@@ -115,16 +115,32 @@ export async function PUT(
             recorrente,
             mesAnoFim,
 
-            // ✅ NOVOS CAMPOS
+            // pagamento
             valorPago,
             dataPagamento,
         } = body;
 
-        // ✅ REGRA ÚNICA DE PAGAMENTO
-        const pago =
+        /* =========================
+           CONTROLE DE PAGAMENTO
+        ========================= */
+
+        const valorDespesa = Number(valor);
+
+        const novoValorPago =
             valorPago !== null &&
             valorPago !== undefined &&
-            Number(valorPago) > 0;
+            valorPago !== ""
+                ? Number(valorPago)
+                : 0;
+
+        const restante = valorDespesa - novoValorPago;
+
+        const status =
+            restante <= 0
+                ? "pago"
+                : novoValorPago > 0
+                    ? "parcial"
+                    : "pendente";
 
         const despesa = await DespesaPrevista.findOneAndUpdate(
             {
@@ -136,16 +152,18 @@ export async function PUT(
 
                 categoria,
 
-                valor: Number(valor),
+                valor: valorDespesa,
 
                 dataVencimento: dataVencimento
-                    ? new Date(dataVencimento)
+                    ? new Date(`${dataVencimento}T12:00:00`)
                     : null,
 
                 formaPagamento,
 
                 cartaoId:
-                    formaPagamento === "CREDITO" ? cartaoId : null,
+                    formaPagamento === "CREDITO"
+                        ? cartaoId
+                        : null,
 
                 observacao,
 
@@ -156,18 +174,24 @@ export async function PUT(
                         ? new Date(`${mesAnoFim}-01`)
                         : null,
 
-                // ✅ CONTROLE DE PAGAMENTO
-                valorPago: pago
-                    ? Number(valorPago)
-                    : null,
+                // pagamento
+                valorPago:
+                    novoValorPago > 0
+                        ? novoValorPago
+                        : null,
 
-                dataPagamento: pago
-                    ? (
-                        dataPagamento
-                            ? new Date(`${dataPagamento}T12:00:00`)
-                            : new Date()
-                    )
-                    : null,
+                dataPagamento:
+                    novoValorPago > 0
+                        ? (
+                              dataPagamento
+                                  ? new Date(
+                                        `${dataPagamento}T12:00:00`
+                                    )
+                                  : new Date()
+                          )
+                        : null,
+
+                status,
             },
             {
                 new: true,
@@ -188,6 +212,7 @@ export async function PUT(
             success: true,
             despesa,
         });
+
     } catch (error) {
         console.error(error);
 
