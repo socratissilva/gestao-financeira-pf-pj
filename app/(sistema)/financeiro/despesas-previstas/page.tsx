@@ -505,7 +505,7 @@ export default function DespesasPage() {
 
             {/* TABELA */}
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <table className="w-full">
+                <table className="min-w-[1000px]">
                     <thead className="bg-slate-50">
                         <tr>
                             <th className="px-4 py-3 text-left text-sm">

@@ -1,8 +1,8 @@
-//api/financeiro/despesas-previstas/[id]/route.ts
+// api/financeiro/despesas-previstas/[id]/route.ts
+
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import DespesaPrevista from "@/models/DespesaPrevista";
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import "@/models/cartao";
@@ -12,47 +12,30 @@ export const runtime = "nodejs";
 /* =========================
    GET
 ========================= */
-export async function GET(
-    req: Request,
-    context: {
-        params: Promise<{ id: string }>;
-    }
-) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         await connectDB();
 
-        const session =
-            await getServerSession(authOptions);
+        const session = await getServerSession(authOptions);
 
         if (!session?.user?.id) {
             return NextResponse.json(
-                {
-                    success: false,
-                    message: "Não autenticado",
-                },
-                {
-                    status: 401,
-                }
+                { success: false, message: "Não autenticado" },
+                { status: 401 }
             );
         }
 
         const { id } = await context.params;
 
-        const despesa =
-            await DespesaPrevista.findOne({
-                _id: id,
-                userId: session.user.id,
-            });
+        const despesa = await DespesaPrevista.findOne({
+            _id: id,
+            userId: session.user.id,
+        });
 
         if (!despesa) {
             return NextResponse.json(
-                {
-                    success: false,
-                    message: "Despesa não encontrada",
-                },
-                {
-                    status: 404,
-                }
+                { success: false, message: "Despesa não encontrada" },
+                { status: 404 }
             );
         }
 
@@ -65,13 +48,8 @@ export async function GET(
         console.error(error);
 
         return NextResponse.json(
-            {
-                success: false,
-                message: "Erro ao buscar despesa",
-            },
-            {
-                status: 500,
-            }
+            { success: false, message: "Erro ao buscar despesa" },
+            { status: 500 }
         );
     }
 }
@@ -79,12 +57,7 @@ export async function GET(
 /* =========================
    PUT
 ========================= */
-export async function PUT(
-    req: Request,
-    context: {
-        params: Promise<{ id: string }>;
-    }
-) {
+export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         await connectDB();
 
@@ -92,16 +65,12 @@ export async function PUT(
 
         if (!session?.user?.id) {
             return NextResponse.json(
-                {
-                    success: false,
-                    message: "Não autenticado",
-                },
+                { success: false, message: "Não autenticado" },
                 { status: 401 }
             );
         }
 
         const { id } = await context.params;
-
         const body = await req.json();
 
         const {
@@ -114,17 +83,14 @@ export async function PUT(
             observacao,
             recorrente,
             mesAnoFim,
-
-            // pagamento
             valorPago,
             dataPagamento,
         } = body;
 
         /* =========================
-           CONTROLE DE PAGAMENTO
+           VALORES BASE
         ========================= */
-
-        const valorDespesa = Number(valor);
+        const valorDespesa = Number(valor || 0);
 
         const novoValorPago =
             valorPago !== null &&
@@ -142,6 +108,24 @@ export async function PUT(
                     ? "parcial"
                     : "pendente";
 
+        /* =========================
+           UTC SAFE DATE (VENCIMENTO)
+        ========================= */
+        let vencimentoDate = null;
+
+        if (dataVencimento) {
+            const [y, m, d] = dataVencimento.split("-");
+
+            vencimentoDate = new Date(Date.UTC(
+                Number(y),
+                Number(m) - 1,
+                Number(d)
+            ));
+        }
+
+        /* =========================
+           UPDATE
+        ========================= */
         const despesa = await DespesaPrevista.findOneAndUpdate(
             {
                 _id: id,
@@ -154,16 +138,11 @@ export async function PUT(
 
                 valor: valorDespesa,
 
-                dataVencimento: dataVencimento
-                    ? new Date(`${dataVencimento}T12:00:00`)
-                    : null,
+                dataVencimento: vencimentoDate,
 
                 formaPagamento,
 
-                cartaoId:
-                    formaPagamento === "CREDITO"
-                        ? cartaoId
-                        : null,
+                cartaoId: formaPagamento === "CREDITO" ? cartaoId : null,
 
                 observacao,
 
@@ -174,36 +153,24 @@ export async function PUT(
                         ? new Date(`${mesAnoFim}-01`)
                         : null,
 
-                // pagamento
                 valorPago:
-                    novoValorPago > 0
-                        ? novoValorPago
-                        : null,
+                    novoValorPago > 0 ? novoValorPago : null,
 
                 dataPagamento:
                     novoValorPago > 0
-                        ? (
-                              dataPagamento
-                                  ? new Date(
-                                        `${dataPagamento}T12:00:00`
-                                    )
-                                  : new Date()
-                          )
+                        ? dataPagamento
+                            ? new Date(`${dataPagamento}T00:00:00Z`)
+                            : new Date()
                         : null,
 
                 status,
             },
-            {
-                new: true,
-            }
+            { new: true }
         );
 
         if (!despesa) {
             return NextResponse.json(
-                {
-                    success: false,
-                    message: "Despesa não encontrada",
-                },
+                { success: false, message: "Despesa não encontrada" },
                 { status: 404 }
             );
         }
@@ -217,10 +184,7 @@ export async function PUT(
         console.error(error);
 
         return NextResponse.json(
-            {
-                success: false,
-                message: "Erro ao atualizar despesa",
-            },
+            { success: false, message: "Erro ao atualizar despesa" },
             { status: 500 }
         );
     }
@@ -229,47 +193,30 @@ export async function PUT(
 /* =========================
    DELETE
 ========================= */
-export async function DELETE(
-    req: Request,
-    context: {
-        params: Promise<{ id: string }>;
-    }
-) {
+export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         await connectDB();
 
-        const session =
-            await getServerSession(authOptions);
+        const session = await getServerSession(authOptions);
 
         if (!session?.user?.id) {
             return NextResponse.json(
-                {
-                    success: false,
-                    message: "Não autenticado",
-                },
-                {
-                    status: 401,
-                }
+                { success: false, message: "Não autenticado" },
+                { status: 401 }
             );
         }
 
         const { id } = await context.params;
 
-        const despesa =
-            await DespesaPrevista.findOneAndDelete({
-                _id: id,
-                userId: session.user.id,
-            });
+        const despesa = await DespesaPrevista.findOneAndDelete({
+            _id: id,
+            userId: session.user.id,
+        });
 
         if (!despesa) {
             return NextResponse.json(
-                {
-                    success: false,
-                    message: "Despesa não encontrada",
-                },
-                {
-                    status: 404,
-                }
+                { success: false, message: "Despesa não encontrada" },
+                { status: 404 }
             );
         }
 
@@ -282,13 +229,8 @@ export async function DELETE(
         console.error(error);
 
         return NextResponse.json(
-            {
-                success: false,
-                message: "Erro ao excluir despesa",
-            },
-            {
-                status: 500,
-            }
+            { success: false, message: "Erro ao excluir despesa" },
+            { status: 500 }
         );
     }
 }
