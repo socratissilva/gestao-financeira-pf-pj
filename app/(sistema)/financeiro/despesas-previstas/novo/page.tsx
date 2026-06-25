@@ -72,12 +72,17 @@ export default function NovoGanho() {
                 const response = await fetch("/api/financeiro/cartoes");
 
                 if (!response.ok) {
-                    throw new Error();
+                    throw new Error("Erro ao buscar cartões");
                 }
 
                 const data = await response.json();
 
-                setCartoes(data);
+                // dependendo da sua API
+                setCartoes(
+                    Array.isArray(data)
+                        ? data
+                        : data.cartoes || []
+                );
             } catch (error) {
                 console.error(error);
                 toast.error("Erro ao carregar cartões");
@@ -89,27 +94,42 @@ export default function NovoGanho() {
         carregarCartoes();
     }, []);
 
+
     useEffect(() => {
-        if (
-            formData.formaPagamento !== "CREDITO" ||
-            !cartaoSelecionado ||
-            !formData.mesAno
-        ) return;
+    if (formData.formaPagamento !== "CREDITO") return;
 
-        const [anoBase, mesBase] = formData.mesAno.split("-").map(Number);
+    if (!cartaoSelecionado) return;
 
-        let ano = anoBase;
-        let mes = mesBase - 1; // JS começa em 0
+    const [ano, mes] = formData.mesAno
+        .split("-")
+        .map(Number);
 
-        const diaVencimento = cartaoSelecionado.vencimentoDia;
+    const dia = cartaoSelecionado.vencimentoDia;
 
-        const data = new Date(ano, mes, diaVencimento);
+    const dataFormatada =
+        `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 
-        setFormData((prev) => ({
-            ...prev,
-            dataVencimento: data.toISOString().split("T")[0],
-        }));
-    }, [formData.formaPagamento, formData.cartaoId, formData.mesAno]);
+    console.log("VENCIMENTO GERADO:", dataFormatada);
+
+    setFormData((prev) => ({
+        ...prev,
+        dataVencimento: dataFormatada,
+    }));
+}, [
+    formData.formaPagamento,
+    formData.cartaoId,
+    formData.mesAno,
+]);
+
+    useEffect(() => {
+        if (formData.formaPagamento !== "CREDITO") {
+            setFormData((prev) => ({
+                ...prev,
+                dataVencimento: "",
+                cartaoId: "",
+            }));
+        }
+    }, [formData.formaPagamento]);
 
 
     const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -182,6 +202,13 @@ export default function NovoGanho() {
         return Object.keys(newErrors).length === 0;
     };
 
+    console.log({
+        mesAno: formData.mesAno,
+        dataVencimento: formData.dataVencimento,
+        formaPagamento: formData.formaPagamento,
+        cartaoId: formData.cartaoId,
+    });
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -244,40 +271,6 @@ export default function NovoGanho() {
     const cartaoSelecionado = cartoes.find(
         (cartao) => cartao._id === formData.cartaoId
     );
-
-    useEffect(() => {
-        if (formData.formaPagamento !== "CREDITO" || !cartaoSelecionado) {
-            setFormData((prev) => ({
-                ...prev,
-                dataVencimento: "",
-            }));
-            return;
-        }
-
-        const hoje = new Date();
-
-        let ano = hoje.getFullYear();
-        let mes = hoje.getMonth();
-
-        if (hoje.getDate() > cartaoSelecionado.vencimentoDia) {
-            mes += 1;
-            if (mes > 11) {
-                mes = 0;
-                ano += 1;
-            }
-        }
-
-        const dataVencimento = new Date(
-            ano,
-            mes,
-            cartaoSelecionado.vencimentoDia
-        );
-
-        setFormData((prev) => ({
-            ...prev,
-            dataVencimento: dataVencimento.toISOString().split("T")[0],
-        }));
-    }, [formData.formaPagamento, formData.cartaoId]);
 
     return (
         <div className="space-y-6">

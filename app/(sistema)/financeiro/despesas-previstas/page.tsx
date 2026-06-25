@@ -269,20 +269,19 @@ export default function DespesasPage() {
     const despesasAgrupadas = useMemo(() => {
         let lista = [...despesasFiltradas];
 
-        // 🔥 SÓ ORDENA POR VENCIMENTO NO MÊS
-        if (filterType === "month") {
-            lista.sort((a, b) => {
-                const da = a.dataVencimento
-                    ? new Date(a.dataVencimento).getTime()
-                    : 0;
+        // ✅ ORDENAÇÃO GLOBAL (FUNCIONA PARA MONTH / YEAR / DAY)
+        lista.sort((a, b) => {
+            const da = a.dataVencimento
+                ? new Date(a.dataVencimento).getTime()
+                : 0;
 
-                const db = b.dataVencimento
-                    ? new Date(b.dataVencimento).getTime()
-                    : 0;
+            const db = b.dataVencimento
+                ? new Date(b.dataVencimento).getTime()
+                : 0;
 
-                return da - db; // mais próximo primeiro
-            });
-        }
+            return da - db;
+        });
+
 
         const grupos: Record<string, any[]> = {};
 
@@ -322,7 +321,6 @@ export default function DespesasPage() {
                 </Link>
             </div>
 
-            {/* FILTROS */}
             {/* FILTROS */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
