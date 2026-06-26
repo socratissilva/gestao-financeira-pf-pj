@@ -1,3 +1,4 @@
+//api/dash
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
@@ -10,8 +11,13 @@ import DespesaPrevista from "@/models/DespesaPrevista";
 export const runtime = "nodejs";
 
 function getMesAnoFormatted(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = new Date(date);
+
+  // força "meio-dia UTC" para evitar rollback de timezone
+  d.setUTCHours(12, 0, 0, 0);
+
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
 
   return `${year}-${month}`;
 }
@@ -141,6 +147,9 @@ export async function GET(req: Request) {
       mesAno: filtroMesAno,
     };
 
+    console.log("Filtro utilizado:");
+    console.log(JSON.stringify(query, null, 2));
+
     const receitas_previstas =
       await ReceitaPrevista.find(query);
 
@@ -149,6 +158,20 @@ export async function GET(req: Request) {
 
     const despesas_previstas =
       await DespesaPrevista.find(query);
+
+    console.log(
+      receitas_previstas.map((r) => ({
+        id: r._id,
+        valor: r.valor,
+        mesAno: r.mesAno,
+        mesFormatado: getMesAnoFormatted(r.mesAno),
+      }))
+    );
+
+    console.log(
+      "TOTAL RECEITA PREVISTA:",
+      receitas_previstas.reduce((s, r) => s + Number(r.valor), 0)
+    );
 
     // =========================
     // TOTAIS

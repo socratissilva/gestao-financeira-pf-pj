@@ -17,6 +17,15 @@ import {
 import { CATEGORIAS_LABEL } from "@/constants/categorias-receitas";
 import toast from "react-hot-toast";
 
+function getCompetenciaKey(date: Date | string) {
+  const d = new Date(date);
+
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}`;
+}
+
 export default function ReceitasPage() {
 
   function toUTCDate(dateValue: string | Date) {
@@ -48,7 +57,18 @@ export default function ReceitasPage() {
   const [endMonth, setEndMonth] = useState("");
 
   useEffect(() => {
-    carregarReceitas();
+    let ignore = false;
+
+    async function load() {
+      if (ignore) return;
+      await carregarReceitas();
+    }
+
+    load();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   async function carregarReceitas() {
@@ -127,48 +147,22 @@ export default function ReceitasPage() {
     }
   }
 
-  const receitasExpandidas = useMemo(() => {
-    const resultado: any[] = [];
+  const receitasUnicas = useMemo(() => {
+    const map = new Map();
 
-    receitas.forEach((receita) => {
-      if (!receita.recorrente || !receita.mesAnoFim) {
-        resultado.push({
-          ...receita,
-          dataProjecao: receita.mesAno,
-          origemId: receita._id,
-        });
+    for (const r of receitas) {
+      const key = `${r._id}`;
+      map.set(key, r);
+    }
 
-        return;
-      }
-
-      const inicio = new Date(receita.mesAno);
-      const fim = new Date(receita.mesAnoFim);
-
-      let atual = new Date(inicio);
-
-      while (atual <= fim) {
-        resultado.push({
-          ...receita,
-          dataProjecao: new Date(atual),
-          origemId: receita._id, // 👈 ESSENCIAL
-        });
-
-        atual = new Date(
-          Date.UTC(
-            atual.getUTCFullYear(),
-            atual.getUTCMonth() + 1,
-            1
-          )
-        );
-      }
-    });
-
-    return resultado;
+    return Array.from(map.values());
   }, [receitas]);
 
+
+
   const mesesDisponiveis = useMemo(() => {
-    const meses = receitasExpandidas.map((r) => {
-      const data = new Date(r.dataProjecao || r.mesAno);
+    const meses = receitasUnicas.map((r) => {
+      const data = new Date(r.mesAno);
 
       return `${String(
         data.getUTCMonth() + 1
@@ -184,13 +178,11 @@ export default function ReceitasPage() {
         new Date(Number(anoB), Number(mesB) - 1).getTime()
       );
     });
-  }, [receitasExpandidas]);
+  }, [receitasUnicas]);
 
   const anosDisponiveis = useMemo(() => {
-    const anos = receitasExpandidas.map((r) => {
-      const info = toUTCDate(
-        r.dataProjecao || r.mesAno
-      );
+    const anos = receitasUnicas.map((r) => {
+      const info = toUTCDate(r.mesAno);
 
       return info.ano.toString();
     });
@@ -198,7 +190,7 @@ export default function ReceitasPage() {
     return [...new Set(anos)].sort(
       (a, b) => Number(a) - Number(b)
     );
-  }, [receitasExpandidas]);
+  }, [receitasUnicas]);
 
   useEffect(() => {
     if (!mesesDisponiveis.length) return;
@@ -241,9 +233,9 @@ export default function ReceitasPage() {
 
 
   const receitasFiltradas = useMemo(() => {
-    return receitasExpandidas.filter((receita) => {
+    return receitasUnicas.filter((receita) => {
       const dataInfo = toUTCDate(
-        receita.dataProjecao || receita.mesAno
+        receita.mesAno
       );
 
       if (filterType === "month") {
@@ -278,7 +270,7 @@ export default function ReceitasPage() {
       return true;
     });
   }, [
-    receitasExpandidas,
+    receitasUnicas,
     filterType,
     selectedMonth,
     selectedYear,
@@ -318,24 +310,22 @@ export default function ReceitasPage() {
     const grupos: Record<string, any[]> = {};
 
     receitasFiltradas.forEach((receita) => {
-      const data = new Date(
-        receita.dataProjecao || receita.mesAno
+      const chave = getCompetenciaKey(
+        receita.mesAno
       );
 
-      const chave = `${data.getUTCFullYear()}-${String(
-        data.getUTCMonth() + 1
-      ).padStart(2, "0")}`;
-
-      if (!grupos[chave]) {
-        grupos[chave] = [];
-      }
+      if (!grupos[chave]) grupos[chave] = [];
 
       grupos[chave].push(receita);
     });
 
-    return Object.entries(grupos).sort(
-      ([a], [b]) => a.localeCompare(b)
-    );
+    return Object.entries(grupos).sort(([a], [b]) => {
+      const [ya, ma] = a.split("-").map(Number);
+      const [yb, mb] = b.split("-").map(Number);
+
+      return new Date(ya, ma - 1).getTime() -
+        new Date(yb, mb - 1).getTime();
+    });
   }, [receitasFiltradas]);
 
   if (loading) {
@@ -601,7 +591,7 @@ export default function ReceitasPage() {
                     {receitasMes.map(
                       (receita) => (
                         <tr
-                          key={`${receita.origemId}-${receita.dataProjecao}`}
+                          key={`${receita._id}-${receita.mesAno}`}
                           className="border-t"
                         >
                           <td className="px-4 py-3">
@@ -673,14 +663,14 @@ export default function ReceitasPage() {
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-3">
                               <Link
-                                href={`/financeiro/receitas-previstas/${receita.origemId}`}
+                                href={`/financeiro/receitas-previstas/${receita._id}`}
                                 className="cursor-pointer"
                               >
                                 <Edit className="h-4 w-4 text-slate-600 transition hover:scale-110 hover:text-green-600" />
                               </Link>
 
                               <button
-                                onClick={() => excluirReceita(receita.origemId)}
+                                onClick={() => excluirReceita(receita._id)}
                                 className="cursor-pointer"
                               >
                                 <Trash2 className="h-4 w-4 text-red-600 transition hover:scale-110 hover:text-red-700" />

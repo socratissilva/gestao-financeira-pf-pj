@@ -251,6 +251,30 @@ export default function VisaoGeralFinanceiro() {
 
   const { resumo, graficos } = dados;
 
+  const mesAtualRef = `${hoje.getFullYear()}-${String(
+    hoje.getMonth() + 1
+  ).padStart(2, "0")}`;
+
+  function isFuturo(mes: string) {
+    const [y, m] = mes.split("-").map(Number);
+    const [cy, cm] = mesAtualRef.split("-").map(Number);
+
+    return new Date(y, m - 1).getTime() > new Date(cy, cm - 1).getTime();
+  }
+
+  const dadosGrafico = graficos.receitaDespesaMes.map((item) => {
+    const futuro = isFuturo(item.mes);
+
+    return {
+      mes: item.mes,
+      receitas: futuro ? item.receitaPrevista : item.receitaRealizada,
+      despesas: futuro ? item.despesaPrevista : item.despesaPaga,
+      resultado:
+        (futuro ? item.receitaPrevista : item.receitaRealizada) -
+        (futuro ? item.despesaPrevista : item.despesaPaga),
+    };
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -408,10 +432,11 @@ export default function VisaoGeralFinanceiro() {
         {/* Gráficos principais - Linha 2 */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <ReceitaDespesaChart data={graficos.receitaDespesaMes} />
+            <ReceitaDespesaChart data={dadosGrafico} />
           </div>
+
           <div>
-            <SaldoChart data={graficos.receitaDespesaMes} />
+            <SaldoChart data={dadosGrafico} />
           </div>
         </div>
 

@@ -1,3 +1,4 @@
+//components/Dashboard/ReceitaDespesaChart.tsx
 import {
   BarChart,
   Bar,
@@ -12,22 +13,25 @@ import {
 interface ReceitaDespesaChartProps {
   data: Array<{
     mes: string;
-    receitaPrevista: number;
-    receitaRealizada: number;
-    despesaPrevista: number;
-    despesaPaga: number;
+    receitas: number;
+    despesas: number;
+    resultado: number;
   }>;
 }
 
 export function ReceitaDespesaChart({ data }: ReceitaDespesaChartProps) {
   // Formatar datas para melhor visualização
-  const dadosFormatados = data.map((item) => ({
-    ...item,
-    mesFormatado: new Date(item.mes + "-01").toLocaleDateString("pt-BR", {
-      month: "short",
-      year: "2-digit",
-    }),
-  }));
+  const dadosFormatados = data.map((item) => {
+    const [ano, mes] = item.mes.split("-").map(Number);
+
+    return {
+      ...item,
+      mesFormatado: new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", {
+        month: "short",
+        year: "2-digit",
+      }),
+    };
+  });
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload?.length) {
@@ -65,30 +69,11 @@ export function ReceitaDespesaChart({ data }: ReceitaDespesaChartProps) {
           <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          <Bar
-            dataKey="receitaPrevista"
-            fill="#10b981"
-            name="Receita Prevista"
-            radius={[8, 8, 0, 0]}
-          />
-          <Bar
-            dataKey="receitaRealizada"
-            fill="#059669"
-            name="Receita Realizada"
-            radius={[8, 8, 0, 0]}
-          />
-          <Bar
-            dataKey="despesaPrevista"
-            fill="#ef4444"
-            name="Despesa Prevista"
-            radius={[8, 8, 0, 0]}
-          />
-          <Bar
-            dataKey="despesaPaga"
-            fill="#991b1b"
-            name="Despesa Paga"
-            radius={[8, 8, 0, 0]}
-          />
+          <Bar dataKey="receitas" fill="#10b981" name="Receitas" radius={[8, 8, 0, 0]} />
+
+          <Bar dataKey="despesas" fill="#ef4444" name="Despesas" radius={[8, 8, 0, 0]} />
+
+          <Bar dataKey="resultado" fill="#3b82f6" name="Resultado" radius={[8, 8, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

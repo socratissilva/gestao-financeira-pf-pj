@@ -62,6 +62,9 @@ export async function GET() {
 /* =========================
    POST
 ========================= */
+/* =========================
+   POST
+========================= */
 export async function POST(req: Request) {
   try {
     await connectDB();
@@ -74,9 +77,7 @@ export async function POST(req: Request) {
           success: false,
           message: "Usuário não autenticado",
         },
-        {
-          status: 401,
-        }
+        { status: 401 }
       );
     }
 
@@ -91,25 +92,68 @@ export async function POST(req: Request) {
       mesAnoFim,
     } = body;
 
-    const receita = await ReceitaPrevista.create({
-      mesAno,
-      categoria,
+    const documentos = [];
 
-      valor: Number(valor),
+    const dataInicial = new Date(mesAno);
 
-      valorRecebido: null,
+    if (recorrente && mesAnoFim) {
+      const dataFinal = new Date(mesAnoFim);
 
-      observacao: observacao || "",
-      recorrente: !!recorrente,
-      mesAnoFim: mesAnoFim || null,
+      const dataAtual = new Date(dataInicial);
 
-      userId: session.user.id,
-    });
+      while (dataAtual <= dataFinal) {
+        documentos.push({
+          userId: session.user.id,
+
+          mesAno: new Date(
+            Date.UTC(
+              dataAtual.getUTCFullYear(),
+              dataAtual.getUTCMonth(),
+              1
+            )
+          ),
+
+          categoria,
+
+          valor: Number(valor),
+
+          valorRecebido: null,
+
+          observacao: observacao || "",
+
+          recorrente: true,
+
+          mesAnoFim: new Date(mesAnoFim),
+        });
+
+        dataAtual.setUTCMonth(dataAtual.getUTCMonth() + 1);
+      }
+    } else {
+      documentos.push({
+        userId: session.user.id,
+
+        mesAno: new Date(mesAno),
+
+        categoria,
+
+        valor: Number(valor),
+
+        valorRecebido: null,
+
+        observacao: observacao || "",
+
+        recorrente: false,
+
+        mesAnoFim: null,
+      });
+    }
+
+    const receitas = await ReceitaPrevista.insertMany(documentos);
 
     return NextResponse.json(
       {
         success: true,
-        receita,
+        receitas,
       },
       {
         status: 201,
