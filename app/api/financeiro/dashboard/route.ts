@@ -58,11 +58,13 @@ export async function GET(req: Request) {
     if (filterType === "month" && month) {
       const [ano, mes] = month.split("-").map(Number);
 
-      dataInicio = new Date(Date.UTC(ano, mes - 1, 1));
+      dataInicio = new Date(Date.UTC(ano, mes - 1, 1, 0, 0, 0, 0));
+
       dataFim = new Date(Date.UTC(ano, mes, 0, 23, 59, 59, 999));
 
       filtroMesAno = {
-        $eq: dataInicio,
+        $gte: dataInicio,
+        $lte: dataFim,
       };
     }
 
@@ -158,6 +160,38 @@ export async function GET(req: Request) {
 
     const despesas_previstas =
       await DespesaPrevista.find(query);
+
+    console.log(
+      despesas_previstas.map((d) => ({
+        id: d._id.toString(),
+        valor: d.valor,
+        mesAno: d.mesAno,
+        ativa: d.ativa,
+        recorrente: d.recorrente,
+        categoria: d.categoria,
+        observacao: d.observacao,
+      }))
+    );
+
+    console.log(
+      "DESPESAS DE JULHO",
+      despesas_previstas
+        .filter((d) => getMesAnoFormatted(d.mesAno) === "2026-07")
+        .map((d) => ({
+          id: d._id.toString(),
+          valor: d.valor,
+          categoria: d.categoria,
+          vencimento: d.dataVencimento,
+          mesAno: d.mesAno,
+        }))
+    );
+
+    console.log(
+      "TOTAL JULHO:",
+      despesas_previstas
+        .filter((d) => getMesAnoFormatted(d.mesAno) === "2026-07")
+        .reduce((s, d) => s + Number(d.valor), 0)
+    );
 
     console.log(
       receitas_previstas.map((r) => ({
