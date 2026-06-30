@@ -232,11 +232,15 @@ export async function GET(req: Request) {
     // TOTAIS
     // =========================
 
-    const totalReceitaPrevista =
-      receitas_previstas.reduce(
-        (acc, r) => acc + getValorReceita(r),
-        0
-      );
+    const totalReceitaPrevista = receitas_previstas.reduce(
+      (acc, r) => acc + r.valor,
+      0
+    );
+
+    const totalReceitaRecebida = receitas_previstas.reduce(
+      (acc, r) => acc + (r.valorRecebido ?? 0),
+      0
+    );
 
     const totalReceitaRealizada =
       receitas_realizadas.reduce(
@@ -398,6 +402,7 @@ export async function GET(req: Request) {
 
         resumo: {
           totalReceitaPrevista,
+          totalReceitaRecebida,
           totalReceitaRealizada,
           totalDespesaPrevista,
           totalDespesaPaga,

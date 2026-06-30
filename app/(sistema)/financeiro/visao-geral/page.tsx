@@ -22,6 +22,7 @@ interface DashboardData {
 
   resumo: {
     totalReceitaPrevista: number;
+    totalReceitaRecebida: number;
     totalReceitaRealizada: number;
     totalDespesaPrevista: number;
     totalDespesaPaga: number;
@@ -402,7 +403,7 @@ export default function VisaoGeralFinanceiro() {
         </div>
 
         {/* KPIs - Linha 1 */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <KPICard
             titulo="Saldo Estimado"
             valor={resumo.saldoEstimado}
@@ -427,6 +428,119 @@ export default function VisaoGeralFinanceiro() {
             tipo="negativo"
             icon={<TrendingDown />}
           />
+          <KPICard
+            titulo="Receita Recebida"
+            valor={resumo.totalReceitaRealizada}
+            tipo="negativo"
+            icon={<TrendingDown />}
+          />
+        </div> */}
+
+        {/* Detalhes de realização */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Taxa de Realização</h3>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm text-gray-600">Receita Recebida</span>
+                  <span className="text-sm font-bold text-green-600">
+                    {(
+                      (resumo.totalReceitaRecebida / resumo.totalReceitaPrevista) *
+                      100
+                    ).toFixed(1)}
+                    %
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-500 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (resumo.totalReceitaRecebida / resumo.totalReceitaPrevista) *
+                        100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm text-gray-600">Despesa Paga</span>
+                  <span className="text-sm font-bold text-red-600">
+                    {(
+                      (resumo.totalDespesaPaga / resumo.totalDespesaPrevista) *
+                      100
+                    ).toFixed(1)}
+                    %
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-red-500 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (resumo.totalDespesaPaga / resumo.totalDespesaPrevista) * 100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Receita Recebida</h3>
+            <p className="text-2xl font-bold text-green-600 mb-2">
+              {formatCurrency(resumo.totalReceitaRecebida)}
+            </p>
+            <p className="text-sm text-gray-600">
+              De {formatCurrency(resumo.totalReceitaPrevista)} previsto
+            </p>
+            {resumo.totalReceitaRealizada > resumo.totalReceitaPrevista && (
+              <p className="text-xs text-green-600 mt-2">
+                ✓ Acima da previsão
+              </p>
+            )}
+          </div>
+
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Despesa Paga</h3>
+            <p className="text-2xl font-bold text-red-600 mb-2">
+              {formatCurrency(resumo.totalDespesaPaga)}
+            </p>
+            <p className="text-sm text-gray-600">
+              De {formatCurrency(resumo.totalDespesaPrevista)} previsto
+            </p>
+            {resumo.totalDespesaPaga < resumo.totalDespesaPrevista && (
+              <p className="text-xs text-green-600 mt-2">
+                ✓ Abaixo da previsão
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Estatísticas finais */}
+        <div className="mt-8">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg py-4 px-6 text-white flex flex-col items-center text-center">
+            <h3 className="text-base font-semibold">
+              Resultado
+            </h3>
+
+            <p className="text-2xl font-bold mt-1">
+              {formatCurrency(
+                resumo.totalReceitaPrevista -
+                resumo.totalDespesaPrevista
+              )}
+            </p>
+
+            <p className="text-blue-100 text-xs mt-1">
+              Receita - Despesa
+            </p>
+          </div>
         </div>
 
         {/* Gráficos principais - Linha 2 */}
@@ -466,95 +580,10 @@ export default function VisaoGeralFinanceiro() {
           />
         </div>
 
-        {/* Detalhes de realização */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Taxa de Realização</h3>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm text-gray-600">Receita Realizada</span>
-                  <span className="text-sm font-bold text-green-600">
-                    {(
-                      (resumo.totalReceitaRealizada / resumo.totalReceitaPrevista) *
-                      100
-                    ).toFixed(1)}
-                    %
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        (resumo.totalReceitaRealizada / resumo.totalReceitaPrevista) *
-                        100
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm text-gray-600">Despesa Paga</span>
-                  <span className="text-sm font-bold text-red-600">
-                    {(
-                      (resumo.totalDespesaPaga / resumo.totalDespesaPrevista) *
-                      100
-                    ).toFixed(1)}
-                    %
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-red-500 h-2 rounded-full"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        (resumo.totalDespesaPaga / resumo.totalDespesaPrevista) * 100
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Receita Realizada</h3>
-            <p className="text-2xl font-bold text-green-600 mb-2">
-              {formatCurrency(resumo.totalReceitaRealizada)}
-            </p>
-            <p className="text-sm text-gray-600">
-              De {formatCurrency(resumo.totalReceitaPrevista)} previsto
-            </p>
-            {resumo.totalReceitaRealizada > resumo.totalReceitaPrevista && (
-              <p className="text-xs text-green-600 mt-2">
-                ✓ Acima da previsão
-              </p>
-            )}
-          </div>
-
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Despesa Paga</h3>
-            <p className="text-2xl font-bold text-red-600 mb-2">
-              {formatCurrency(resumo.totalDespesaPaga)}
-            </p>
-            <p className="text-sm text-gray-600">
-              De {formatCurrency(resumo.totalDespesaPrevista)} previsto
-            </p>
-            {resumo.totalDespesaPaga < resumo.totalDespesaPrevista && (
-              <p className="text-xs text-green-600 mt-2">
-                ✓ Abaixo da previsão
-              </p>
-            )}
-          </div>
-        </div>
 
         {/* Estatísticas finais */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* <div className="mt-8 w-full">
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
             <h3 className="text-lg font-bold mb-2">Diferença Estimada</h3>
             <p className="text-3xl font-bold">
@@ -565,28 +594,8 @@ export default function VisaoGeralFinanceiro() {
             <p className="text-blue-100 text-sm mt-2">
               Receita Prevista - Despesa Prevista
             </p>
-          </div>
+          </div> */}
 
-          <div
-            className={`rounded-lg p-6 text-white ${resumo.saldoRealizado >= 0
-              ? "bg-gradient-to-r from-green-500 to-green-600"
-              : "bg-gradient-to-r from-orange-500 to-red-600"
-              }`}
-          >
-            <h3 className="text-lg font-bold mb-2">Saldo Real</h3>
-            <p className="text-3xl font-bold">
-              {formatCurrency(resumo.saldoRealizado)}
-            </p>
-            <p
-              className={`text-sm mt-2 ${resumo.saldoRealizado >= 0
-                ? "text-green-100"
-                : "text-red-100"
-                }`}
-            >
-              Receita Realizada - Despesa Paga
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
