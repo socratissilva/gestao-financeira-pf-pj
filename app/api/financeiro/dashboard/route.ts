@@ -1,4 +1,4 @@
-//api/dash
+//api/financeiro/dashboard/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
@@ -20,6 +20,24 @@ function getMesAnoFormatted(date: Date): string {
   const month = String(d.getUTCMonth() + 1).padStart(2, "0");
 
   return `${year}-${month}`;
+}
+
+function getValorReceita(receita: {
+  valor: number;
+  valorRecebido?: number | null;
+}) {
+  return receita.valorRecebido != null
+    ? receita.valorRecebido
+    : receita.valor;
+}
+
+function getValorDespesa(despesa: {
+  valor: number;
+  valorPago?: number | null;
+}) {
+  return despesa.valorPago != null
+    ? despesa.valorPago
+    : despesa.valor;
 }
 
 export async function GET(req: Request) {
@@ -164,7 +182,7 @@ export async function GET(req: Request) {
     console.log(
       despesas_previstas.map((d) => ({
         id: d._id.toString(),
-        valor: d.valor,
+        valor: getValorDespesa(d),
         mesAno: d.mesAno,
         ativa: d.ativa,
         recorrente: d.recorrente,
@@ -179,7 +197,7 @@ export async function GET(req: Request) {
         .filter((d) => getMesAnoFormatted(d.mesAno) === "2026-07")
         .map((d) => ({
           id: d._id.toString(),
-          valor: d.valor,
+          valor: getValorDespesa(d),
           categoria: d.categoria,
           vencimento: d.dataVencimento,
           mesAno: d.mesAno,
@@ -190,7 +208,7 @@ export async function GET(req: Request) {
       "TOTAL JULHO:",
       despesas_previstas
         .filter((d) => getMesAnoFormatted(d.mesAno) === "2026-07")
-        .reduce((s, d) => s + Number(d.valor), 0)
+        .reduce((s, d) => s + Number(getValorDespesa(d)), 0)
     );
 
     console.log(
@@ -204,7 +222,10 @@ export async function GET(req: Request) {
 
     console.log(
       "TOTAL RECEITA PREVISTA:",
-      receitas_previstas.reduce((s, r) => s + Number(r.valor), 0)
+      receitas_previstas.reduce(
+        (s, r) => s + getValorReceita(r),
+        0
+      )
     );
 
     // =========================
@@ -213,7 +234,7 @@ export async function GET(req: Request) {
 
     const totalReceitaPrevista =
       receitas_previstas.reduce(
-        (acc, r) => acc + r.valor,
+        (acc, r) => acc + getValorReceita(r),
         0
       );
 
@@ -225,7 +246,7 @@ export async function GET(req: Request) {
 
     const totalDespesaPrevista =
       despesas_previstas.reduce(
-        (acc, d) => acc + d.valor,
+        (acc, d) => acc + getValorDespesa(d),
         0
       );
 
@@ -259,7 +280,7 @@ export async function GET(req: Request) {
 
       initMes(mesAno);
 
-      dadosPorMes[mesAno].receitaPrevista += r.valor;
+      dadosPorMes[mesAno].receitaPrevista += getValorReceita(r);
     });
 
     receitas_realizadas.forEach((r) => {
@@ -275,9 +296,9 @@ export async function GET(req: Request) {
 
       initMes(mesAno);
 
-      dadosPorMes[mesAno].despesaPrevista += d.valor;
+      dadosPorMes[mesAno].despesaPrevista += getValorDespesa(d);
 
-      if (d.valorPago) {
+      if (d.valorPago != null) {
         dadosPorMes[mesAno].despesaPaga += d.valorPago;
       }
     });
@@ -336,19 +357,21 @@ export async function GET(req: Request) {
     const metodosPagamento: Record<string, number> = {};
 
     despesas_previstas.forEach((d) => {
+      const valor = getValorDespesa(d);
+
       gastosPorCategoria[d.categoria] =
         (gastosPorCategoria[d.categoria] || 0) +
-        d.valor;
+        valor;
 
       metodosPagamento[d.formaPagamento] =
         (metodosPagamento[d.formaPagamento] || 0) +
-        d.valor;
+        valor;
     });
 
     receitas_previstas.forEach((r) => {
       receitasPorCategoria[r.categoria] =
         (receitasPorCategoria[r.categoria] || 0) +
-        r.valor;
+        getValorReceita(r);
     });
 
     const dadosCategoria = Object.entries(

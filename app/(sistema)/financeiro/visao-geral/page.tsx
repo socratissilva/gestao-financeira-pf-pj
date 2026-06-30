@@ -410,7 +410,7 @@ export default function VisaoGeralFinanceiro() {
             icon={<DollarSign />}
           />
           <KPICard
-            titulo="Saldo Realizado"
+            titulo="Despesa Total (Paga)"
             valor={resumo.saldoRealizado}
             tipo={resumo.saldoRealizado >= 0 ? "positivo" : "negativo"}
             icon={<TrendingUp />}
@@ -422,7 +422,7 @@ export default function VisaoGeralFinanceiro() {
             icon={<TrendingUp />}
           />
           <KPICard
-            titulo="Despesa Total (Prevista)"
+            titulo="Despesa Total (Previstas)"
             valor={resumo.totalDespesaPrevista}
             tipo="negativo"
             icon={<TrendingDown />}
