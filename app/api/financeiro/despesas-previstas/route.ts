@@ -30,7 +30,7 @@ export async function GET() {
       );
     }
 
-    const despesas_previstas =
+    const despesas =
       await DespesaPrevista.find({
         userId: session.user.id,
       })
@@ -39,6 +39,17 @@ export async function GET() {
           mesAno: -1,
         })
         .lean();
+
+    const despesas_previstas = despesas.map((d: any) => {
+      const valorOriginal = Number(d.valor || 0);
+      const valorPago = Number(d.valorPago || 0);
+
+      return {
+        ...d,
+        valorOriginal,
+        valor: valorOriginal,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -87,7 +98,7 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-        console.log("BODY RECEBIDO:", body);
+    console.log("BODY RECEBIDO:", body);
 
     const {
       mesAno,

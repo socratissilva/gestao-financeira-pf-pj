@@ -252,10 +252,14 @@ export default function DespesasPage() {
     ]);
 
     const totalDespesas = useMemo(() => {
-        return despesasFiltradas.reduce(
-            (acc, item) => acc + Number(item.valor),
-            0
-        );
+        return despesasFiltradas.reduce((acc, item) => {
+            const valor =
+                Number(item.valorPago) > 0
+                    ? Number(item.valorPago)
+                    : Number(item.valor);
+
+            return acc + valor;
+        }, 0);
     }, [despesasFiltradas]);
 
     const totalPago = useMemo(() => {

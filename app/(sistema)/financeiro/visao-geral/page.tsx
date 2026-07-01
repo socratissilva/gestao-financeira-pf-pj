@@ -263,22 +263,48 @@ export default function VisaoGeralFinanceiro() {
 
     return new Date(y, m - 1).getTime() > new Date(cy, cm - 1).getTime();
   }
-
   const dadosGrafico = graficos.receitaDespesaMes.map((item) => {
-    const futuro = isFuturo(item.mes);
+    const isReceitaRealValida =
+      item.receitaRealizada !== null &&
+      item.receitaRealizada !== undefined &&
+      item.receitaRealizada > 0;
+
+    const isDespesaRealValida =
+      item.despesaPaga !== null &&
+      item.despesaPaga !== undefined &&
+      item.despesaPaga > 0;
+
+    const receitas = isReceitaRealValida
+      ? item.receitaRealizada
+      : item.receitaPrevista;
+
+    const despesas = isDespesaRealValida
+      ? item.despesaPaga
+      : item.despesaPrevista;
 
     return {
       mes: item.mes,
-      receitas: futuro ? item.receitaPrevista : item.receitaRealizada,
-      despesas: futuro ? item.despesaPrevista : item.despesaPaga,
-      resultado:
-        (futuro ? item.receitaPrevista : item.receitaRealizada) -
-        (futuro ? item.despesaPrevista : item.despesaPaga),
+      receitas: receitas ?? 0,
+      despesas: despesas ?? 0,
+      resultado: (receitas ?? 0) - (despesas ?? 0),
     };
   });
 
   console.log("Resumo:", resumo);
-console.log("Gráfico:", graficos.receitaDespesaMes);
+  console.log("Gráfico:", graficos.receitaDespesaMes);
+
+  const resultado =
+    resumo.totalReceitaPrevista - resumo.totalDespesaPrevista;
+
+
+  function getValorReceitaEfetiva(receita: {
+    valor: number;
+    valorRecebido?: number | null;
+  }) {
+    return receita.valorRecebido != null
+      ? receita.valorRecebido
+      : receita.valor;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -529,19 +555,22 @@ console.log("Gráfico:", graficos.receitaDespesaMes);
 
         {/* Estatísticas finais */}
         <div className="mt-8">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg py-4 px-6 text-white flex flex-col items-center text-center">
-            <h3 className="text-base font-semibold">
-              Resultado
-            </h3>
+          <div
+            className={`rounded-lg py-4 px-6 text-white flex flex-col items-center text-center ${resultado < 0
+              ? "bg-gradient-to-r from-red-500 to-red-600"
+              : "bg-gradient-to-r from-blue-500 to-blue-600"
+              }`}
+          >
+            <h3 className="text-base font-semibold">Resultado</h3>
 
             <p className="text-2xl font-bold mt-1">
-              {formatCurrency(
-                resumo.totalReceitaPrevista -
-                resumo.totalDespesaPrevista
-              )}
+              {formatCurrency(resultado)}
             </p>
 
-            <p className="text-blue-100 text-xs mt-1">
+            <p
+              className={`text-xs mt-1 ${resultado < 0 ? "text-red-100" : "text-blue-100"
+                }`}
+            >
               Receita - Despesa
             </p>
           </div>

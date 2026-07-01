@@ -233,7 +233,7 @@ export async function GET(req: Request) {
     // =========================
 
     const totalReceitaPrevista = receitas_previstas.reduce(
-      (acc, r) => acc + r.valor,
+      (acc, r) => acc + getValorReceita(r),
       0
     );
 

@@ -26,6 +26,15 @@ function getCompetenciaKey(date: Date | string) {
   return `${year}-${month}`;
 }
 
+function getValorReceita(receita: {
+  valor: number;
+  valorRecebido?: number | null;
+}) {
+  return receita.valorRecebido != null
+    ? Number(receita.valorRecebido)
+    : Number(receita.valor);
+}
+
 export default function ReceitasPage() {
 
   function toUTCDate(dateValue: string | Date) {
@@ -301,7 +310,7 @@ export default function ReceitasPage() {
 
   const totalReceitas = useMemo(() => {
     return receitasFiltradas.reduce(
-      (acc, item) => acc + Number(item.valor),
+      (acc, item) => acc + getValorReceita(item),
       0
     );
   }, [receitasFiltradas]);
@@ -559,7 +568,7 @@ export default function ReceitasPage() {
                 const totalMes =
                   receitasMes.reduce(
                     (acc, item) =>
-                      acc + Number(item.valor),
+                      acc + getValorReceita(item),
                     0
                   );
 
