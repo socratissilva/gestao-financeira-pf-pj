@@ -68,11 +68,7 @@ export default function UberOverview() {
         return new Date(y, m - 1, d);
     };
 
-    const [selectedMonth, setSelectedMonth] = useState(() => {
-        const hoje = new Date();
-
-        return `${String(hoje.getMonth() + 1).padStart(2, "0")}-${hoje.getFullYear()}`;
-    });
+    const [selectedMonth, setSelectedMonth] = useState("");
 
     const [startDate, setStartDate] = useState(() => {
         const hoje = new Date();
@@ -581,15 +577,21 @@ export default function UberOverview() {
     }, [ganhos]);
 
     useEffect(() => {
-        if (
-            mesesDisponiveis.length > 0 &&
-            !selectedMonth
-        ) {
-            setSelectedMonth(
-                mesesDisponiveis[0]
-            );
+        if (mesesDisponiveis.length > 0) {
+            setSelectedMonth((mesAtual) => {
+                // Se o mês atual ainda existe na lista, mantém a seleção
+                if (
+                    mesAtual &&
+                    mesesDisponiveis.includes(mesAtual)
+                ) {
+                    return mesAtual;
+                }
+
+                // Caso contrário, usa o mês mais recente com dados
+                return mesesDisponiveis[0];
+            });
         }
-    }, [mesesDisponiveis, selectedMonth]);
+    }, [mesesDisponiveis]);
 
     useEffect(() => {
         if (

@@ -37,6 +37,7 @@ interface DashboardData {
 
   graficos: {
     receitaDespesaMes: Array<{
+      receitaRecebida: any;
       mes: string;
       receitaPrevista: number;
       receitaRealizada: number;
@@ -275,6 +276,9 @@ export default function VisaoGeralFinanceiro() {
         (futuro ? item.despesaPrevista : item.despesaPaga),
     };
   });
+
+  console.log("Resumo:", resumo);
+console.log("Gráfico:", graficos.receitaDespesaMes);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
