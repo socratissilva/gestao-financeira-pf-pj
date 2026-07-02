@@ -464,7 +464,7 @@ export default function DespesasPage() {
 
                         <div>
                             <p className="text-sm text-slate-500">
-                                Total de Despesas Provisionadas
+                                Total Despesa
                             </p>
 
                             <p className="text-2xl font-bold text-red-600">

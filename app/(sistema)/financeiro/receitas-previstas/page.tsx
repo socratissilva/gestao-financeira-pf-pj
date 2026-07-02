@@ -504,7 +504,7 @@ export default function ReceitasPage() {
 
             <div>
               <p className="text-sm text-slate-500">
-                Total Receitas Provisionadas
+                Total Receita
               </p>
 
               <p className="text-2xl font-bold text-slate-900">
