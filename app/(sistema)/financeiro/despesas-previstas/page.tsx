@@ -39,6 +39,7 @@ export default function DespesasPage() {
     const [endMonth, setEndMonth] = useState("");
 
     const [isInitialized, setIsInitialized] = useState(false);
+    const [expandedCartoes, setExpandedCartoes] = useState<Record<string, boolean>>({});
 
     function toUTCDate(dateValue: string | Date) {
         const d = new Date(dateValue);
@@ -304,6 +305,284 @@ export default function DespesasPage() {
             a.localeCompare(b)
         );
     }, [despesasFiltradas, filterType]);
+
+    const getCartaoDisplayName = (despesa: any) => {
+        if (despesa?.cartaoId && typeof despesa.cartaoId === "object") {
+            return despesa.cartaoId.nome || "Cartão";
+        }
+
+        if (despesa?.cartaoId) {
+            return "Cartão cadastrado";
+        }
+
+        return "Cartão";
+    };
+
+    const getCartaoKey = (despesa: any) => {
+        if (despesa?.cartaoId && typeof despesa.cartaoId === "object") {
+            return String(despesa.cartaoId._id || despesa.cartaoId.nome || "cartao");
+        }
+
+        return String(despesa?.cartaoId || "cartao-sem-id");
+    };
+
+    const toggleCartao = (key: string) => {
+        setExpandedCartoes((prev) => ({
+            ...prev,
+            [key]: !prev[key],
+        }));
+    };
+
+    const formatDateInput = (value: string | Date | null | undefined) => {
+        if (!value) return "";
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) return "";
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    };
+
+    const formatMesAno = (value: string | Date | null | undefined) => {
+        if (!value) return "";
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) return "";
+
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    };
+
+    const confirmarPagamentoFatura = (itens: any[], nomeCartao: string) => {
+        const total = itens.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+
+        toast((t) => (
+            <div className="flex min-w-[280px] flex-col gap-3">
+                <p className="font-medium text-slate-900">
+                    Registrar pagamento da fatura?
+                </p>
+
+                <p className="text-sm text-slate-500">
+                    Cartão: <span className="font-semibold text-slate-700">{nomeCartao}</span>
+                </p>
+
+                <p className="text-sm text-slate-500">
+                    Valor: <span className="font-semibold text-slate-700">{total.toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                    })}</span>
+                </p>
+
+                <div className="flex justify-end gap-2 pt-2">
+                    <button
+                        onClick={() => toast.dismiss(t.id)}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                    >
+                        Cancelar
+                    </button>
+
+                    <button
+                        onClick={async () => {
+                            toast.dismiss(t.id);
+                            await pagarFaturaCartao(itens, nomeCartao);
+                        }}
+                        className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
+                    >
+                        Registrar
+                    </button>
+                </div>
+            </div>
+        ), {
+            duration: 8000,
+        });
+    };
+
+    const pagarFaturaCartao = async (itens: any[], nomeCartao: string) => {
+        const total = itens.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+
+        try {
+            const hoje = new Date();
+            const dataPagamento = formatDateInput(hoje);
+
+            await Promise.all(
+                itens.map(async (item) => {
+                    const cartaoId =
+                        item.cartaoId && typeof item.cartaoId === "object"
+                            ? item.cartaoId._id
+                            : item.cartaoId || null;
+
+                    const response = await fetch(`/api/financeiro/despesas-previstas/${item.origemId}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            mesAno: formatMesAno(item.mesAno || item.dataProjecao),
+                            categoria: item.categoria,
+                            valor: Number(item.valor || 0),
+                            dataVencimento: formatDateInput(item.dataVencimento),
+                            formaPagamento: item.formaPagamento,
+                            cartaoId,
+                            observacao: item.observacao || "",
+                            recorrente: !!item.recorrente,
+                            mesAnoFim: item.mesAnoFim ? formatMesAno(item.mesAnoFim) : null,
+                            valorPago: Number(item.valor || 0),
+                            dataPagamento,
+                        }),
+                    });
+
+                    const payload = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(payload.message || "Erro ao registrar pagamento da fatura.");
+                    }
+                })
+            );
+
+            toast.success(`Pagamento da fatura de ${nomeCartao} registrado com sucesso!`);
+            carregarDespesas();
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Erro ao registrar pagamento da fatura.");
+        }
+    };
+
+    const reverterPagamentoDespesa = async (item: any) => {
+        const confirmado = window.confirm(
+            `Deseja reverter o pagamento da despesa ${CATEGORIAS_DESPESA_LABEL[item.categoria] ?? item.categoria}?`
+        );
+
+        if (!confirmado) return;
+
+        try {
+            const cartaoId =
+                item.cartaoId && typeof item.cartaoId === "object"
+                    ? item.cartaoId._id
+                    : item.cartaoId || null;
+
+            const response = await fetch(`/api/financeiro/despesas-previstas/${item.origemId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    mesAno: formatMesAno(item.mesAno || item.dataProjecao),
+                    categoria: item.categoria,
+                    valor: Number(item.valor || 0),
+                    dataVencimento: formatDateInput(item.dataVencimento),
+                    formaPagamento: item.formaPagamento,
+                    cartaoId,
+                    observacao: item.observacao || "",
+                    recorrente: !!item.recorrente,
+                    mesAnoFim: item.mesAnoFim ? formatMesAno(item.mesAnoFim) : null,
+                    valorPago: 0,
+                    dataPagamento: null,
+                }),
+            });
+
+            const payload = await response.json();
+
+            if (!response.ok) {
+                throw new Error(payload.message || "Erro ao reverter pagamento do lançamento.");
+            }
+
+            setDespesas((prev) =>
+                prev.map((despesa) => {
+                    if ((despesa._id || despesa.origemId) !== item.origemId) return despesa;
+
+                    return {
+                        ...despesa,
+                        valorPago: 0,
+                        dataPagamento: null,
+                        valor: Number(despesa.valor || 0),
+                    };
+                })
+            );
+
+            toast.success("Pagamento revertido com sucesso!");
+            carregarDespesas();
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Erro ao reverter pagamento do lançamento.");
+        }
+    };
+
+    const reverterPagamentoFaturaCartao = async (itens: any[], nomeCartao: string) => {
+        const total = itens.reduce((acc, item) => acc + Number(item.valorPago || 0), 0);
+
+        const confirmado = window.confirm(
+            `Reverter o pagamento da fatura do cartão ${nomeCartao} no valor de ${total.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+            })}?`
+        );
+
+        if (!confirmado) return;
+
+        try {
+            await Promise.all(
+                itens.map(async (item) => {
+                    const cartaoId =
+                        item.cartaoId && typeof item.cartaoId === "object"
+                            ? item.cartaoId._id
+                            : item.cartaoId || null;
+
+                    const response = await fetch(`/api/financeiro/despesas-previstas/${item.origemId}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            mesAno: formatMesAno(item.mesAno || item.dataProjecao),
+                            categoria: item.categoria,
+                            valor: Number(item.valor || 0),
+                            dataVencimento: formatDateInput(item.dataVencimento),
+                            formaPagamento: item.formaPagamento,
+                            cartaoId,
+                            observacao: item.observacao || "",
+                            recorrente: !!item.recorrente,
+                            mesAnoFim: item.mesAnoFim ? formatMesAno(item.mesAnoFim) : null,
+                            valorPago: 0,
+                            dataPagamento: null,
+                        }),
+                    });
+
+                    const payload = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(payload.message || "Erro ao reverter pagamento da fatura.");
+                    }
+                })
+            );
+
+            setDespesas((prev) =>
+                prev.map((despesa) => {
+                    const itemId = despesa._id || despesa.origemId;
+
+                    if (!itens.some((item) => (item.origemId || item._id) === itemId)) {
+                        return despesa;
+                    }
+
+                    return {
+                        ...despesa,
+                        valorPago: 0,
+                        dataPagamento: null,
+                        valor: Number(despesa.valor || 0),
+                    };
+                })
+            );
+
+            toast.success(`Pagamento da fatura de ${nomeCartao} revertido com sucesso!`);
+            carregarDespesas();
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Erro ao reverter pagamento da fatura.");
+        }
+    };
 
     if (loading) return <div className="p-6">Carregando...</div>;
     return (
@@ -583,8 +862,236 @@ export default function DespesasPage() {
                                             </td>
                                         </tr>
 
-                                        {despesasMes.map(
-                                            (despesa) => (
+                                        {despesasMes.reduce((linhas: any[], despesa) => {
+                                            if (despesa.formaPagamento === "CREDITO" && despesa.cartaoId) {
+                                                const cartaoKey = getCartaoKey(despesa);
+                                                let grupo = linhas.find(
+                                                    (linha) => linha.type === "cartao" && linha.key === cartaoKey
+                                                );
+
+                                                if (!grupo) {
+                                                    grupo = {
+                                                        type: "cartao",
+                                                        key: cartaoKey,
+                                                        nome: getCartaoDisplayName(despesa),
+                                                        itens: [],
+                                                    };
+                                                    linhas.push(grupo);
+                                                }
+
+                                                grupo.itens.push(despesa);
+                                                return linhas;
+                                            }
+
+                                            linhas.push({
+                                                type: "despesa",
+                                                despesa,
+                                            });
+
+                                            return linhas;
+                                        }, []).map((linha) => {
+                                            if (linha.type === "cartao") {
+                                                const grupo = linha;
+                                                const isExpanded = !!expandedCartoes[`${mesAno}-${grupo.key}`];
+                                                const totalGrupo = grupo.itens.reduce(
+                                                    (acc: number, item: any) => acc + Number(item.valor || 0),
+                                                    0
+                                                );
+                                                const totalPagoGrupo = grupo.itens.reduce(
+                                                    (acc: number, item: any) => acc + Number(item.valorPago || 0),
+                                                    0
+                                                );
+                                                const todosPagos = grupo.itens.every(
+                                                    (item: any) => Number(item.valorPago || 0) >= Number(item.valor || 0)
+                                                );
+                                                const ultimaDataVencimento = grupo.itens
+                                                    .map((item: any) => item.dataVencimento ? new Date(item.dataVencimento).getTime() : null)
+                                                    .filter((valor: number | null) => valor !== null)
+                                                    .sort((a: number, b: number) => a - b)
+                                                    .at(-1);
+
+                                                return (
+                                                    <Fragment key={`${mesAno}-${grupo.key}`}>
+                                                        <tr className={`border-t ${todosPagos ? "bg-green-50/80" : "bg-amber-50/70"}`}>
+                                                            <td className="px-4 py-3 text-slate-700">
+                                                                {(() => {
+                                                                    const d = new Date(mesAno.split("-")[0] + "-" + mesAno.split("-")[1] + "-01");
+                                                                    return `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
+                                                                })()}
+                                                            </td>
+
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleCartao(`${mesAno}-${grupo.key}`)}
+                                                                        className={`font-medium underline decoration-dotted underline-offset-2 ${todosPagos ? "text-green-700 hover:text-green-800" : "text-amber-700 hover:text-amber-800"}`}
+                                                                    >
+                                                                        {grupo.nome}
+                                                                    </button>
+
+                                                                    {todosPagos && (
+                                                                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700">
+                                                                            Pago
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+
+                                                            <td className="px-4 py-3 font-semibold text-slate-800">
+                                                                {totalGrupo.toLocaleString("pt-BR", {
+                                                                    style: "currency",
+                                                                    currency: "BRL",
+                                                                })}
+                                                            </td>
+
+                                                            <td className="px-4 py-3">
+                                                                {totalPagoGrupo > 0 ? (
+                                                                    <div className="flex items-center gap-2 text-green-600 font-semibold">
+                                                                        <CheckCircle className="h-4 w-4" />
+                                                                        {totalPagoGrupo.toLocaleString("pt-BR", {
+                                                                            style: "currency",
+                                                                            currency: "BRL",
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center gap-2 text-yellow-600 font-semibold">
+                                                                        <Clock3 className="h-4 w-4" />
+                                                                        Pendente
+                                                                    </div>
+                                                                )}
+                                                            </td>
+
+                                                            <td
+                                                                className={`px-4 py-3 font-medium ${ultimaDataVencimento &&
+                                                                    new Date(ultimaDataVencimento) < new Date() &&
+                                                                    totalPagoGrupo <= 0
+                                                                    ? "text-red-600"
+                                                                    : "text-slate-700"
+                                                                    }`}
+                                                            >
+                                                                {ultimaDataVencimento
+                                                                    ? new Date(ultimaDataVencimento).toLocaleDateString("pt-BR")
+                                                                    : "-"}
+                                                            </td>
+
+                                                            <td className="px-4 py-3 text-center">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    {!todosPagos && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => confirmarPagamentoFatura(grupo.itens, grupo.nome)}
+                                                                            className="rounded-lg bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700"
+                                                                        >
+                                                                            Registrar Pagamento
+                                                                        </button>
+                                                                    )}
+
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleCartao(`${mesAno}-${grupo.key}`)}
+                                                                        className={`rounded-lg border px-2 py-1 text-xs font-medium ${todosPagos
+                                                                            ? "border-green-200 bg-white text-green-700 hover:bg-green-50"
+                                                                            : "border-amber-200 bg-white text-amber-700 hover:bg-amber-50"}`}
+                                                                    >
+                                                                        {isExpanded ? "Ocultar" : `Ver ${grupo.itens.length}`}
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+
+                                                        {isExpanded && (
+                                                            <tr>
+                                                                <td colSpan={6} className="bg-slate-50 px-4 py-3">
+                                                                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                                                                        <div className="mb-3 flex items-center justify-between">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                                                    Lançamentos de {grupo.nome}
+                                                                                </p>
+                                                                                {!todosPagos && (
+                                                                                    <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-700">
+                                                                                        <Clock3 className="h-3 w-3" />
+                                                                                        Pendente
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <span className="text-sm font-medium text-slate-700">
+                                                                                {grupo.itens.length} itens
+                                                                            </span>
+                                                                        </div>
+
+                                                                        <div className="space-y-2">
+                                                                            {grupo.itens.map((item: any) => (
+                                                                                <div
+                                                                                    key={`${item.origemId}-${item.dataProjecao}`}
+                                                                                    className="flex flex-col gap-2 rounded-lg border border-slate-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                                                                                >
+                                                                                    <div>
+                                                                                        <p className="font-medium text-slate-800">
+                                                                                            {CATEGORIAS_DESPESA_LABEL[item.categoria] ?? item.categoria}
+                                                                                        </p>
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <p className="text-xs text-slate-500">
+                                                                                                {item.dataVencimento
+                                                                                                    ? new Date(item.dataVencimento).toLocaleDateString("pt-BR")
+                                                                                                    : "Sem vencimento"}
+                                                                                            </p>
+                                                                                            {Number(item.valorPago || 0) > 0 ? (
+                                                                                                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700">
+                                                                                                    <CheckCircle className="h-3 w-3" />
+                                                                                                    {item.dataPagamento
+                                                                                                        ? new Date(item.dataPagamento).toLocaleDateString("pt-BR")
+                                                                                                        : "Pago"}
+                                                                                                </span>
+                                                                                            ) : (
+                                                                                                <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-700">
+                                                                                                    <Clock3 className="h-3 w-3" />
+                                                                                                    Pendente
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <span className="font-semibold text-slate-800">
+                                                                                            {Number(item.valor).toLocaleString("pt-BR", {
+                                                                                                style: "currency",
+                                                                                                currency: "BRL",
+                                                                                            })}
+                                                                                        </span>
+
+                                                                                        <Link
+                                                                                            href={`/financeiro/despesas-previstas/${item.origemId}`}
+                                                                                            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+                                                                                        >
+                                                                                            <Edit className="h-3.5 w-3.5" />
+                                                                                            Editar
+                                                                                        </Link>
+
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => excluirDespesa(item.origemId)}
+                                                                                            className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700"
+                                                                                        >
+                                                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                                                            Excluir
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </Fragment>
+                                                );
+                                            }
+
+                                            const despesa = linha.despesa;
+
+                                            return (
                                                 <tr
                                                     key={`${despesa.origemId}-${despesa.dataProjecao}`}
                                                     className="border-t"
@@ -700,8 +1207,8 @@ export default function DespesasPage() {
                                                         </div>
                                                     </td>
                                                 </tr>
-                                            )
-                                        )}
+                                            );
+                                        })}
                                     </Fragment>
                                 );
                             }

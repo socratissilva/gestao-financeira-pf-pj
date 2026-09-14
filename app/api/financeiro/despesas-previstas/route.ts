@@ -114,6 +114,49 @@ export async function POST(req: Request) {
       observacao,
     } = body;
 
+    const vencimentoInformado = !!(dataVencimento && String(dataVencimento).trim());
+    const dataVencimentoDate = vencimentoInformado
+      ? new Date(`${String(dataVencimento).trim()}T12:00:00`)
+      : null;
+    const vencimentoFuturo = !!(
+      dataVencimentoDate &&
+      !Number.isNaN(dataVencimentoDate.getTime()) &&
+      dataVencimentoDate > new Date()
+    );
+
+    const pagamentoImediato = ["PIX", "DINHEIRO", "DEBITO"].includes(
+      String(formaPagamento || "").toUpperCase()
+    ) && (!vencimentoInformado || !vencimentoFuturo);
+
+    const valorPagoInformado =
+      valorPago !== null && valorPago !== undefined && valorPago !== ""
+        ? Number(valorPago)
+        : null;
+
+    const dataPagamentoInformado =
+      dataPagamento !== null && dataPagamento !== undefined && dataPagamento !== ""
+        ? String(dataPagamento)
+        : null;
+
+    const valorPagoFinal =
+      vencimentoFuturo
+        ? null
+        : pagamentoImediato
+          ? valorPagoInformado !== null
+            ? valorPagoInformado
+            : Number(valor || 0)
+          : valorPagoInformado;
+
+    const dataPagamentoFinal =
+      vencimentoFuturo
+        ? null
+        : pagamentoImediato
+          ? dataPagamentoInformado
+            ? new Date(`${dataPagamentoInformado}T12:00:00`)
+            : new Date()
+          : dataPagamentoInformado
+            ? new Date(`${dataPagamentoInformado}T12:00:00`)
+            : null;
 
     function gerarMeses(inicio: string, fim: string) {
       const meses: string[] = [];
@@ -161,15 +204,9 @@ export async function POST(req: Request) {
 
         valor: Number(valor),
 
-        valorPago:
-          valorPago !== null &&
-            valorPago !== undefined &&
-            valorPago !== ""
-            ? Number(valorPago)
-            : null,
+        valorPago: valorPagoFinal,
 
-        dataPagamento:
-          dataPagamento || null,
+        dataPagamento: dataPagamentoFinal,
 
         dataVencimento: dataVencimento
           ? new Date(
@@ -263,9 +300,9 @@ export async function POST(req: Request) {
 
         valor: Number(valor),
 
-        valorPago: null,
+        valorPago: valorPagoFinal,
 
-        dataPagamento: null,
+        dataPagamento: dataPagamentoFinal,
 
         dataVencimento: vencimentoFinal,
 

@@ -87,17 +87,35 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
             dataPagamento,
         } = body;
 
-        /* =========================
-           VALORES BASE
-        ========================= */
+        const vencimentoInformado = !!(dataVencimento && String(dataVencimento).trim());
+        const dataVencimentoDate = vencimentoInformado
+            ? new Date(`${String(dataVencimento).trim()}T12:00:00`)
+            : null;
+        const vencimentoFuturo = !!(
+            dataVencimentoDate &&
+            !Number.isNaN(dataVencimentoDate.getTime()) &&
+            dataVencimentoDate > new Date()
+        );
+
+        const pagamentoImediato = ["PIX", "DINHEIRO", "DEBITO"].includes(
+            String(formaPagamento || "").toUpperCase()
+        ) && (!vencimentoInformado || !vencimentoFuturo);
+
         const valorDespesa = Number(valor || 0);
 
-        const novoValorPago =
-            valorPago !== null &&
-            valorPago !== undefined &&
-            valorPago !== ""
+        const valorPagoInformado =
+            valorPago !== null && valorPago !== undefined && valorPago !== ""
                 ? Number(valorPago)
-                : 0;
+                : null;
+
+        const novoValorPago =
+            vencimentoFuturo
+                ? 0
+                : pagamentoImediato
+                    ? valorPagoInformado !== null
+                        ? valorPagoInformado
+                        : valorDespesa
+                    : valorPagoInformado ?? 0;
 
         const restante = valorDespesa - novoValorPago;
 
@@ -116,11 +134,14 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
         if (dataVencimento) {
             const [y, m, d] = dataVencimento.split("-");
 
-            vencimentoDate = new Date(Date.UTC(
+            vencimentoDate = new Date(
                 Number(y),
                 Number(m) - 1,
-                Number(d)
-            ));
+                Number(d),
+                12,
+                0,
+                0
+            );
         }
 
         /* =========================
@@ -159,7 +180,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
                 dataPagamento:
                     novoValorPago > 0
                         ? dataPagamento
-                            ? new Date(`${dataPagamento}T00:00:00Z`)
+                            ? new Date(`${dataPagamento}T12:00:00`)
                             : new Date()
                         : null,
 
