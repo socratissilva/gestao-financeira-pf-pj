@@ -38,6 +38,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import { truncate } from "fs";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ function isGroup(e: NavEntry): e is NavGroup { return "group" in e; }
 const MODULES = {
   uber: true,
   financeiro: true,
-  investimentos: false,
+  investimentos: true,
   organizacao: false,
   cadastro: true,
 };
