@@ -408,7 +408,7 @@ export default function DespesasPage() {
             const hoje = new Date();
             const dataPagamento = formatDateInput(hoje);
 
-            await Promise.all(
+            const despesasAtualizadas = await Promise.all(
                 itens.map(async (item) => {
                     const cartaoId =
                         item.cartaoId && typeof item.cartaoId === "object"
@@ -440,11 +440,36 @@ export default function DespesasPage() {
                     if (!response.ok) {
                         throw new Error(payload.message || "Erro ao registrar pagamento da fatura.");
                     }
+
+                    return payload.despesa;
                 })
             );
 
+            setDespesas((prev) =>
+                prev.map((despesa) => {
+                    const atualizada = despesasAtualizadas.find(
+                        (item) => String(item?._id) === String(despesa._id)
+                    );
+
+                    if (!atualizada) return despesa;
+
+                    const cartaoId =
+                        typeof atualizada.cartaoId === "string" &&
+                            despesa.cartaoId &&
+                            typeof despesa.cartaoId === "object"
+                            ? despesa.cartaoId
+                            : atualizada.cartaoId;
+
+                    return { ...despesa, ...atualizada, cartaoId };
+                })
+            );
+
+            setExpandedCartoes((prev) => ({
+                ...prev,
+                [`${formatMesAno(itens[0]?.mesAno || itens[0]?.dataProjecao)}-${getCartaoKey(itens[0])}`]: true,
+            }));
+
             toast.success(`Pagamento da fatura de ${nomeCartao} registrado com sucesso!`);
-            carregarDespesas();
         } catch (error: any) {
             console.error(error);
             toast.error(error.message || "Erro ao registrar pagamento da fatura.");
@@ -920,7 +945,7 @@ export default function DespesasPage() {
                                                                 })()}
                                                             </td>
 
-                                                            <td className="px-4 py-3">
+                                                            <td className="px-4 py-3 text-left">
                                                                 <div className="flex items-center gap-2">
                                                                     <button
                                                                         type="button"
