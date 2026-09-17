@@ -97,7 +97,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
             dataVencimentoDate > new Date()
         );
 
-        const pagamentoImediato = ["PIX", "DINHEIRO", "DEBITO"].includes(
+        const pagamentoImediato = ["PIX", "DINHEIRO", "DEBITO", "TICKET"].includes(
             String(formaPagamento || "").toUpperCase()
         ) && (!vencimentoInformado || !vencimentoFuturo);
 
@@ -109,13 +109,13 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
                 : null;
 
         const novoValorPago =
-            vencimentoFuturo
-                ? 0
-                : pagamentoImediato
-                    ? valorPagoInformado !== null
-                        ? valorPagoInformado
-                        : valorDespesa
-                    : valorPagoInformado ?? 0;
+            valorPagoInformado !== null
+                ? valorPagoInformado
+                : vencimentoFuturo
+                    ? 0
+                    : pagamentoImediato
+                        ? valorDespesa
+                        : 0;
 
         const restante = valorDespesa - novoValorPago;
 

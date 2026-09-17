@@ -131,45 +131,6 @@ export default function NovoGanho() {
         }
     }, [formData.formaPagamento]);
 
-    useEffect(() => {
-        const pagamentoImediato = ["PIX", "DINHEIRO", "DEBITO"].includes(
-            String(formData.formaPagamento || "").toUpperCase()
-        );
-
-        if (!pagamentoImediato || !formData.valor) return;
-
-        const vencimentoInformado = !!(formData.dataVencimento && String(formData.dataVencimento).trim());
-        const dataVencimento = vencimentoInformado
-            ? new Date(`${String(formData.dataVencimento).trim()}T12:00:00`)
-            : null;
-        const vencimentoFuturo = !!(
-            dataVencimento &&
-            !Number.isNaN(dataVencimento.getTime()) &&
-            dataVencimento > new Date(new Date().setHours(0, 0, 0, 0))
-        );
-
-        if (vencimentoFuturo) {
-            setFormData((prev) => ({
-                ...prev,
-                valorPago: "",
-                dataPagamento: "",
-            }));
-            return;
-        }
-
-        if (formData.valorPago && formData.valorPago !== "") return;
-
-        const hoje = new Date();
-        const dataPagamento = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
-
-        setFormData((prev) => ({
-            ...prev,
-            valorPago: prev.valor,
-            dataPagamento,
-        }));
-    }, [formData.formaPagamento, formData.valor, formData.valorPago, formData.dataVencimento]);
-
-
     const [errors, setErrors] = useState<Partial<FormData>>({});
     const router = useRouter();
 

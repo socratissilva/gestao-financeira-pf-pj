@@ -124,7 +124,7 @@ export async function POST(req: Request) {
       dataVencimentoDate > new Date()
     );
 
-    const pagamentoImediato = ["PIX", "DINHEIRO", "DEBITO"].includes(
+    const pagamentoImediato = ["PIX", "DINHEIRO", "DEBITO", "TICKET"].includes(
       String(formaPagamento || "").toUpperCase()
     ) && (!vencimentoInformado || !vencimentoFuturo);
 
@@ -139,24 +139,20 @@ export async function POST(req: Request) {
         : null;
 
     const valorPagoFinal =
-      vencimentoFuturo
-        ? null
-        : pagamentoImediato
-          ? valorPagoInformado !== null
-            ? valorPagoInformado
-            : Number(valor || 0)
-          : valorPagoInformado;
+      valorPagoInformado !== null
+        ? valorPagoInformado
+        : vencimentoFuturo
+          ? null
+          : pagamentoImediato
+            ? Number(valor || 0)
+            : null;
 
     const dataPagamentoFinal =
-      vencimentoFuturo
-        ? null
-        : pagamentoImediato
-          ? dataPagamentoInformado
-            ? new Date(`${dataPagamentoInformado}T12:00:00`)
-            : new Date()
-          : dataPagamentoInformado
-            ? new Date(`${dataPagamentoInformado}T12:00:00`)
-            : null;
+      valorPagoFinal !== null && Number(valorPagoFinal) > 0
+        ? dataPagamentoInformado
+          ? new Date(`${dataPagamentoInformado}T12:00:00`)
+          : new Date()
+        : null;
 
     function gerarMeses(inicio: string, fim: string) {
       const meses: string[] = [];
