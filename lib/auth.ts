@@ -24,6 +24,7 @@ export const authOptions: NextAuthOptions = {
         // Retorna os dados para compor a sessão do NextAuth
         return {
           id: user._id.toString(),
+          name: user.nome,
           email: user.email,
           role: user.role, // Passando o papel para a sessão
         };
@@ -38,6 +39,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = user.role;
         token.id = user.id;
+        token.name = user.name;
       }
       return token;
     },
@@ -45,6 +47,7 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         session.user.role = token.role;
         session.user.id = token.id;
+        session.user.name = token.name;
       }
       return session;
     },

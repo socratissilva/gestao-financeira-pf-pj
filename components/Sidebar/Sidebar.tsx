@@ -125,9 +125,16 @@ const NAV_VISIBLE: NavEntry[] = NAV.filter((entry) => {
   return MODULES[entry.key];
 });
 
+const DASHBOARD_ITEM: NavItem = {
+  label: "Dashboard",
+  href: "/dashboard",
+  icon: Home,
+};
+
 const ALL_ITEMS: NavItem[] = NAV_VISIBLE.flatMap((e) =>
   isGroup(e) ? e.children : [e]
 );
+ALL_ITEMS.unshift(DASHBOARD_ITEM);
 
 const ITEM_H = 44;
 
@@ -346,6 +353,7 @@ export default function Sidebar() {
           </>
         ) : (
           <nav className="flex flex-col gap-0.5 p-2 flex-1 overflow-hidden">
+            <ExpandedItem item={DASHBOARD_ITEM} />
             {NAV_VISIBLE
               .filter((entry) => {
                 if (
