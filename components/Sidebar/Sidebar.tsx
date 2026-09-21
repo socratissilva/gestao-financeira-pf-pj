@@ -34,6 +34,7 @@ import {
   PiggyBank,
   Shield,
   Bitcoin,
+  BadgeDollarSign,
 
   type LucideIcon,
 } from "lucide-react";
@@ -106,6 +107,7 @@ const NAV: NavEntry[] = [
       { label: "Dividendos", href: "/investimentos/dividendos", icon: Landmark },
       { label: "Renda Fixa", href: "/investimentos/renda-fixa", icon: Shield },
       { label: "Criptomoedas", href: "/investimentos/cripto", icon: Bitcoin },
+      { label: "Preço Teto", href: "/investimentos/preco-teto", icon: BadgeDollarSign },
       { label: "Metas", href: "/investimentos/metas", icon: Target },
     ],
   },
