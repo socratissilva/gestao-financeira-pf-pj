@@ -162,6 +162,9 @@ export default function BaseDadosPrecoTetoPage() {
       const orderedColumns = EXPECTED_COLUMNS.filter((expectedColumn) =>
         normalizedColumns.includes(normalizeHeader(expectedColumn))
       );
+      const additionalColumns = normalizedColumns.filter(
+        (column) => !orderedColumns.includes(column)
+      );
 
       const normalizedRows = parsed.map((row) => {
         const normalizedRow: AtivoRow = {};
@@ -173,7 +176,7 @@ export default function BaseDadosPrecoTetoPage() {
           }
         });
 
-        return orderedColumns.reduce<AtivoRow>((acc, column) => {
+        return [...orderedColumns, ...additionalColumns].reduce<AtivoRow>((acc, column) => {
           const normalizedColumn = normalizeHeader(column);
           acc[column] = normalizedRow[normalizedColumn] ?? "";
           return acc;
