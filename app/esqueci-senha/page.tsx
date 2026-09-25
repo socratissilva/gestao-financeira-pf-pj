@@ -54,7 +54,7 @@ export default function EsqueciSenhaPage() {
           </div>
         </div>
 
-        <h2 style={styles.title}>Recuperar Senha</h2>
+        <h2 style={styles.title}>Alterar ou Recuperar Senha</h2>
         <p style={styles.subtitle}>
           Digite seu e-mail e enviaremos um link para você redefinir sua senha.
         </p>

@@ -129,7 +129,7 @@ export default function LoginPage() {
         {/* Link Esqueci a Senha */}
         <div style={styles.forgotPasswordContainer}>
           <a href="/esqueci-senha" style={styles.forgotPasswordLink}>
-            Esqueceu a senha?
+           Alterar ou Recuperar Senha?
           </a>
         </div>
 
