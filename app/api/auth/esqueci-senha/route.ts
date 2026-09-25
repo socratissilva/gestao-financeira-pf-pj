@@ -31,6 +31,12 @@ export async function POST(req: Request) {
       email: email,
     });
 
+    console.info("Recuperação de senha solicitada", {
+      emailDomain: email.split("@")[1] || "invalido",
+      userFound: Boolean(user),
+      emailTransport: process.env.SMTP_USER && process.env.SMTP_PASSWORD ? "smtp" : "resend",
+    });
+
     // 🔒 segurança: não revelar se existe ou não
     if (!user) {
       return NextResponse.json({
