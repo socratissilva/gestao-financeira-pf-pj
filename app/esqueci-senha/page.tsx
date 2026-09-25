@@ -30,7 +30,7 @@ export default function EsqueciSenhaPage() {
       if (!res.ok) {
         setError(data.message || "Ocorreu um erro ao tentar recuperar a senha.");
       } else {
-        setMessage("Se o e-mail existir em nossa base, um link de recuperação será enviado.");
+        setMessage("Se o e-mail existir em nossa base, um link de recuperação será enviado - VERIFIQUE NA CAIXA DE SPAM!.");
       }
     } catch (err) {
       setError("Erro de conexão. Tente novamente mais tarde.");

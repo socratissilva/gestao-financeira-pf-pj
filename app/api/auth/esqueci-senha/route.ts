@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      message: "Se o e-mail existir, enviaremos instruções.",
+      message: "Se o e-mail existir, enviaremos instruções - VERIFIQUE NA CAIXA DE SPAM!.",
     });
   } catch (error) {
     console.error("Erro ao enviar recuperação de senha:", error);
