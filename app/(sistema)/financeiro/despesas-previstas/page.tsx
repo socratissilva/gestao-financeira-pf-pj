@@ -354,7 +354,7 @@ export default function DespesasPage() {
 
         if (Number.isNaN(date.getTime())) return "";
 
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
     };
 
     const confirmarPagamentoFatura = (itens: any[], nomeCartao: string) => {
