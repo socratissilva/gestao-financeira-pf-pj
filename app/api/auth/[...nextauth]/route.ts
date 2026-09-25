@@ -14,34 +14,35 @@ export const authOptions = {
       // app/api/auth/[...nextauth]/route.ts
 
       async authorize(credentials: any) {
-        await connectDB();
+        try {
+          await connectDB();
 
-        const { email, password, rememberMe } = credentials;
+          const email = String(credentials?.email ?? "").trim().toLowerCase();
+          const password = String(credentials?.password ?? "");
+          const rememberMe = credentials?.rememberMe;
+          const user = await User.findOne({ email });
 
-        // const user = await User.findOne({ email });
+          if (!user) return null;
 
-        const user = await User.findOne({ email });
+          if (user.isAtivo === false) {
+            throw new Error("Usuário inativo. Acesso negado.");
+          }
 
-        if (!user) return null;
+          const passwordsMatch = await bcrypt.compare(password, user.password);
 
-        if (user.isAtivo === false) {
-          throw new Error("Usuário inativo. Acesso negado.");
+          if (!passwordsMatch) return null;
+
+          return {
+            id: user._id.toString(),
+            name: user.nome,
+            email: user.email,
+            role: user.role,
+            rememberMe: rememberMe === "true",
+          };
+        } catch (error) {
+          console.error("Erro na autenticação:", error);
+          throw error;
         }
-
-        const passwordsMatch = await bcrypt.compare(
-          password,
-          user.password
-        );
-
-        if (!passwordsMatch) return null;
-
-        return {
-          id: user._id.toString(),
-          name: user.nome,
-          email: user.email,
-          role: user.role,
-          rememberMe: rememberMe === "true",
-        };
       }
     }),
   ],
