@@ -49,11 +49,13 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-const User =
-  models.User ||
-  mongoose.model("User", UserSchema);
+if (models.User && !models.User.schema.path("modulos")) {
+  mongoose.deleteModel("User");
+}
 
-export default models.User || mongoose.model("User", UserSchema);
+const User = models.User || mongoose.model("User", UserSchema);
+
+export default User;
 
 
 
