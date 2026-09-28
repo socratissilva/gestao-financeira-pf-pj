@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
+import { MODULOS_LEGADOS } from "@/constants/modulos";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -27,6 +28,7 @@ export const authOptions: NextAuthOptions = {
           name: user.nome,
           email: user.email,
           role: user.role, // Passando o papel para a sessão
+          modulos: user.modulos,
         };
       },
     }),
@@ -40,14 +42,25 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.id = user.id;
         token.name = user.name;
+        token.modulos = user.modulos;
       }
       return token;
     },
     async session({ session, token }: any) {
       if (session?.user) {
-        session.user.role = token.role;
         session.user.id = token.id;
-        session.user.name = token.name;
+        await connectDB();
+        const user = await User.findById(token.id)
+          .select("nome role modulos")
+          .lean();
+
+        if (user && !Array.isArray(user)) {
+          session.user.role = user.role;
+          session.user.name = user.nome;
+          session.user.modulos = user.modulos ?? MODULOS_LEGADOS;
+        } else {
+          session.user.modulos = [];
+        }
       }
       return session;
     },

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { MODULOS, MODULOS_LEGADOS, type ModuloAcesso } from '@/constants/modulos';
 
 interface Usuario {
   _id: string;
@@ -37,6 +38,7 @@ export default function DetalhesUsuarioPage() {
     role: 'PADRAO',
     password: '',
     confirmarSenha: '',
+    modulos: [...MODULOS_LEGADOS],
   });
 
   const exibirFeedback = (texto: string, tipo: 'sucesso' | 'erro') => {
@@ -57,6 +59,7 @@ export default function DetalhesUsuarioPage() {
         role: data.usuario.role,
         password: '',
         confirmarSenha: '',
+        modulos: data.usuario.modulos ?? [...MODULOS_LEGADOS],
       });
     } catch (err) {
       exibirFeedback(err instanceof Error ? err.message : 'Erro ao buscar usuário', 'erro');
@@ -70,6 +73,15 @@ export default function DetalhesUsuarioPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleModuloChange = (modulo: ModuloAcesso) => {
+    setFormData((prev) => ({
+      ...prev,
+      modulos: prev.modulos.includes(modulo)
+        ? prev.modulos.filter((item) => item !== modulo)
+        : [...prev.modulos, modulo],
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,10 +99,11 @@ export default function DetalhesUsuarioPage() {
 
     setIsSubmitting(true);
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, unknown> = {
         nome: formData.nome,
         email: formData.email,
         role: formData.role,
+        modulos: formData.modulos,
       };
       if (formData.password) body.password = formData.password;
 
@@ -320,6 +333,26 @@ export default function DetalhesUsuarioPage() {
                   readOnly
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <h3 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-1">
+              Módulos liberados
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {MODULOS.map((modulo) => (
+                <label key={modulo.key} className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.modulos.includes(modulo.key)}
+                    onChange={() => handleModuloChange(modulo.key)}
+                    disabled={!isEditing}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-60"
+                  />
+                  {modulo.label}
+                </label>
+              ))}
             </div>
           </div>
 

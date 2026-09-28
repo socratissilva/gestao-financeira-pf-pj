@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { MODULOS, type ModuloAcesso } from '@/constants/modulos';
 
 export default function NovoUsuarioPage() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function NovoUsuarioPage() {
     role: 'PADRAO',
     password: '',
     confirmarSenha: '',
+    modulos: ['dashboard'] as ModuloAcesso[],
   });
 
   const exibirFeedback = (texto: string, tipo: 'sucesso' | 'erro') => {
@@ -42,6 +44,15 @@ export default function NovoUsuarioPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleModuloChange = (modulo: ModuloAcesso) => {
+    setFormData((prev) => ({
+      ...prev,
+      modulos: prev.modulos.includes(modulo)
+        ? prev.modulos.filter((item) => item !== modulo)
+        : [...prev.modulos, modulo],
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -66,6 +77,7 @@ export default function NovoUsuarioPage() {
           email: formData.email,
           password: formData.password,
           role: formData.role,
+          modulos: formData.modulos,
         }),
       });
 
@@ -153,6 +165,25 @@ export default function NovoUsuarioPage() {
                   <option value="ADMIN">Administrador</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <h3 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-1">
+              Módulos liberados
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {MODULOS.map((modulo) => (
+                <label key={modulo.key} className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.modulos.includes(modulo.key)}
+                    onChange={() => handleModuloChange(modulo.key)}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  {modulo.label}
+                </label>
+              ))}
             </div>
           </div>
 

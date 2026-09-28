@@ -8,6 +8,7 @@ declare module "next-auth" {
       name?: string;
       image?: string;
       role?: string;
+      modulos?: string[];
     };
   }
 
@@ -16,11 +17,13 @@ declare module "next-auth" {
     email?: string;
     name?: string;
     role?: string;
+    modulos?: string[];
   }
 
   interface JWT {
     id?: string;
     role?: string;
+    modulos?: string[];
   }
 }
 
@@ -40,6 +43,7 @@ declare module "next-auth" {
       name: string;
       email: string;
       role: "ADMIN" | "PADRAO";
+      modulos?: string[];
     };
   }
 }

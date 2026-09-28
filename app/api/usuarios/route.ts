@@ -4,6 +4,7 @@ import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { isModuloAcesso } from "@/constants/modulos";
 
 // LISTAR USUÁRIOS
 export async function GET() {
@@ -62,7 +63,18 @@ export async function POST(req: Request) {
       email,
       password,
       role = "PADRAO",
+      modulos,
     } = body;
+
+    if (
+      modulos !== undefined &&
+      (!Array.isArray(modulos) || !modulos.every(isModuloAcesso))
+    ) {
+      return NextResponse.json(
+        { message: "Lista de módulos inválida" },
+        { status: 400 }
+      );
+    }
 
     if (!nome || !email || !password) {
       return NextResponse.json(
@@ -93,6 +105,7 @@ export async function POST(req: Request) {
       email,
       password: senhaHash,
       role,
+      ...(modulos !== undefined && { modulos: [...new Set(modulos)] }),
       isAtivo: true,
     });
 
@@ -104,6 +117,7 @@ export async function POST(req: Request) {
           nome: novoUsuario.nome,
           email: novoUsuario.email,
           role: novoUsuario.role,
+          modulos: novoUsuario.modulos,
           isAtivo: novoUsuario.isAtivo,
         },
       },

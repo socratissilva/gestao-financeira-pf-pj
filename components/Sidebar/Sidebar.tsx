@@ -40,12 +40,13 @@ import {
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { truncate } from "fs";
+import { MODULOS_LEGADOS, type ModuloAcesso } from "@/constants/modulos";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
 interface NavItem { label: string; href: string; icon: LucideIcon }
 interface NavGroup {
-  key: keyof typeof MODULES;
+  key: Exclude<ModuloAcesso, "dashboard">;
   group: string;
   children: NavItem[];
 }
@@ -54,15 +55,6 @@ type NavEntry = NavItem | NavGroup;
 function isGroup(e: NavEntry): e is NavGroup { return "group" in e; }
 
 // ── Navegação ─────────────────────────────────────────────────────────────────
-const MODULES = {
-  uber: true,
-  financeiro: true,
-  investimentos: true,
-  organizacao: false,
-  cadastro: true,
-};
-
-
 const NAV: NavEntry[] = [
   {
     key: "organizacao",
@@ -121,22 +113,11 @@ const NAV: NavEntry[] = [
   },
 ];
 
-const NAV_VISIBLE: NavEntry[] = NAV.filter((entry) => {
-  if (!isGroup(entry)) return true;
-
-  return MODULES[entry.key];
-});
-
 const DASHBOARD_ITEM: NavItem = {
   label: "Dashboard",
   href: "/dashboard",
   icon: Home,
 };
-
-const ALL_ITEMS: NavItem[] = NAV_VISIBLE.flatMap((e) =>
-  isGroup(e) ? e.children : [e]
-);
-ALL_ITEMS.unshift(DASHBOARD_ITEM);
 
 const ITEM_H = 44;
 
@@ -161,6 +142,18 @@ export default function Sidebar() {
   const { data: session, status } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
   const pathname = usePathname();
+  const modulosPermitidos = new Set(session?.user?.modulos ?? MODULOS_LEGADOS);
+  const dashboardHabilitado = modulosPermitidos.has("dashboard");
+  const navVisible = NAV.filter(
+    (entry): entry is NavGroup =>
+      isGroup(entry) &&
+      modulosPermitidos.has(entry.key) &&
+      (entry.key !== "cadastro" || isAdmin)
+  );
+  const allItems = navVisible.flatMap((entry) =>
+    isGroup(entry) ? entry.children : [entry]
+  );
+  if (dashboardHabilitado) allItems.unshift(DASHBOARD_ITEM);
 
   const [isHovered, setIsHovered] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -211,13 +204,13 @@ export default function Sidebar() {
       if (!navRef.current) return;
       const available = navRef.current.clientHeight - 8;
       const max = Math.floor(available / ITEM_H);
-      setVisibleCount(ALL_ITEMS.length <= max ? ALL_ITEMS.length : Math.max(0, max - 1));
+      setVisibleCount(allItems.length <= max ? allItems.length : Math.max(0, max - 1));
     }
     calc();
     const ro = new ResizeObserver(calc);
     if (navRef.current) ro.observe(navRef.current);
     return () => ro.disconnect();
-  }, [collapsed]);
+  }, [collapsed, allItems.length]);
 
   function openOverflow() {
     if (!overflowBtnRef.current) return;
@@ -238,8 +231,8 @@ export default function Sidebar() {
     return () => document.removeEventListener("mousedown", onOut);
   }, [overflowOpen]);
 
-  const visibleItems = visibleCount !== null ? ALL_ITEMS.slice(0, visibleCount) : ALL_ITEMS;
-  const overflowItems = visibleCount !== null ? ALL_ITEMS.slice(visibleCount) : [];
+  const visibleItems = visibleCount !== null ? allItems.slice(0, visibleCount) : allItems;
+  const overflowItems = visibleCount !== null ? allItems.slice(visibleCount) : [];
   const showExpander = overflowItems.length > 0;
 
   // ── Sub-componentes ───────────────────────────────────────────────────────
@@ -355,24 +348,10 @@ export default function Sidebar() {
           </>
         ) : (
           <nav className="flex flex-col gap-0.5 p-2 flex-1 overflow-hidden">
-            <ExpandedItem item={DASHBOARD_ITEM} />
-            {NAV_VISIBLE
-              .filter((entry) => {
-                if (
-                  isGroup(entry) &&
-                  entry.group === "Cadastro" &&
-                  !isAdmin
-                ) {
-                  return false;
-                }
-
-                return true;
-              })
-              .map((entry) =>
-                isGroup(entry)
-                  ? <ExpandedGroup key={entry.group} entry={entry} />
-                  : <ExpandedItem key={(entry as NavItem).href} item={entry as NavItem} />
-              )}
+            {dashboardHabilitado && <ExpandedItem item={DASHBOARD_ITEM} />}
+            {navVisible.map((entry) => (
+              <ExpandedGroup key={entry.group} entry={entry} />
+            ))}
           </nav>
         )}
 

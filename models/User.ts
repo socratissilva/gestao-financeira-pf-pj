@@ -24,6 +24,11 @@ const UserSchema = new mongoose.Schema(
       default: "PADRAO",
     },
 
+    modulos: {
+      type: [String],
+      default: undefined,
+    },
+
     isAtivo: {
       type: Boolean,
       default: true,

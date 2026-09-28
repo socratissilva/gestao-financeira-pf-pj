@@ -5,6 +5,7 @@ import { AuthOptions, getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import email from 'next-auth/providers/email';
+import { isModuloAcesso } from '@/constants/modulos';
 
 async function getSession(authOptions: AuthOptions) {
     return getServerSession(authOptions);
@@ -97,6 +98,16 @@ export async function PUT(
 
         const body = await request.json();
         const updateData: Record<string, any> = {};
+
+        if ('modulos' in body) {
+            if (!Array.isArray(body.modulos) || !body.modulos.every(isModuloAcesso)) {
+                return NextResponse.json(
+                    { message: 'Lista de módulos inválida.' },
+                    { status: 400 }
+                );
+            }
+            updateData.modulos = [...new Set(body.modulos)];
+        }
 
         if (body.nome) {
             updateData.nome = body.nome;
