@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { MODULOS_LEGADOS } from "@/constants/modulos";
 export const runtime = "nodejs";
 
 export const authOptions = {
@@ -37,6 +38,7 @@ export const authOptions = {
             name: user.nome,
             email: user.email,
             role: user.role,
+            modulos: user.modulos,
             rememberMe: rememberMe === "true",
           };
         } catch (error) {
@@ -53,31 +55,32 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async jwt({ token, user }: any) {
-
-      console.log("JWT USER:", user);
-
       if (user) {
         token.name = user.name;
         token.role = user.role;
         token.id = user.id;
+        token.modulos = user.modulos;
       }
-
-      console.log("JWT TOKEN:", token);
 
       return token;
     },
 
     async session({ session, token }: any) {
-
-      console.log("SESSION TOKEN:", token);
-
       if (session.user) {
-        session.user.name = token.name;
-        session.user.role = token.role;
         session.user.id = token.id;
-      }
+        await connectDB();
+        const user = await User.findById(token.id)
+          .select("nome role modulos")
+          .lean();
 
-      console.log("SESSION FINAL:", session);
+        if (user && !Array.isArray(user)) {
+          session.user.name = user.nome;
+          session.user.role = user.role;
+          session.user.modulos = user.modulos ?? MODULOS_LEGADOS;
+        } else {
+          session.user.modulos = [];
+        }
+      }
 
       return session;
     },
