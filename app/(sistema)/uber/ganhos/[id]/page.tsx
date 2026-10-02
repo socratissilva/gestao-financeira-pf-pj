@@ -8,7 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 interface FormData {
-    mesAno: string;
+    data: string;
     plataforma: string;
     valorBruto: string;
     horasTrabalhadas: string;
@@ -22,14 +22,14 @@ export default function EditarGanho() {
     const id = params?.id as string;
 
     const hoje = new Date();
-    const mesAtual = String(hoje.getMonth() + 1).padStart(2, "0");
-    const anoAtual = hoje.getFullYear().toString();
+    hoje.setMinutes(hoje.getMinutes() - hoje.getTimezoneOffset());
+    const dataAtual = hoje.toISOString().split("T")[0];
 
     const [loading, setLoading] = useState(false);
     const [loadingPage, setLoadingPage] = useState(true);
 
     const [formData, setFormData] = useState<FormData>({
-        mesAno: `${mesAtual}-${anoAtual}`,
+        data: dataAtual,
         plataforma: "Uber",
         valorBruto: "",
         horasTrabalhadas: "",
@@ -59,11 +59,8 @@ export default function EditarGanho() {
 
             const ganho = data.ganho;
 
-            const dataObj = new Date(ganho.data);
-            const mesAno = `${String(dataObj.getMonth() + 1).padStart(2, "0")}-${dataObj.getFullYear()}`;
-
             setFormData({
-                mesAno,
+                data: new Date(ganho.data).toISOString().split("T")[0],
                 plataforma: ganho.plataforma || "Uber",
                 valorBruto: ganho.valorBruto?.toString() || "",
                 horasTrabalhadas: ganho.horasTrabalhadas?.toString() || "",
@@ -104,7 +101,7 @@ export default function EditarGanho() {
     const validateForm = (): boolean => {
         const newErrors: Partial<FormData> = {};
 
-        if (!formData.mesAno) newErrors.mesAno = "Mês/Ano é obrigatório";
+        if (!formData.data) newErrors.data = "Data é obrigatória";
         if (!formData.plataforma) newErrors.plataforma = "Plataforma é obrigatória";
 
         if (!formData.valorBruto) {
@@ -133,7 +130,7 @@ export default function EditarGanho() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    mesAno: formData.mesAno,
+                    data: formData.data,
                     plataforma: formData.plataforma,
                     valorBruto: Number(formData.valorBruto),
                     horasTrabalhadas: Number(formData.horasTrabalhadas),
@@ -166,7 +163,7 @@ export default function EditarGanho() {
 
     if (loadingPage) {
         return (
-            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
                 <p className="text-slate-500">Carregando ganho...</p>
             </div>
         );
@@ -176,7 +173,7 @@ export default function EditarGanho() {
         <div className="space-y-6">
 
             {/* HEADER (MANTIDO) */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between gap-4">
                 <PageHeader
                     title="Editar Ganho"
                     description="Atualize o registro do ganho"
@@ -184,7 +181,7 @@ export default function EditarGanho() {
 
                 <Link
                     href="/uber/ganhos"
-                    className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm"
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:shadow"
                 >
                     <ChevronLeft className="h-4 w-4" />
                     Voltar
@@ -192,113 +189,166 @@ export default function EditarGanho() {
             </div>
 
             {/* FORM (MESMO LAYOUT) */}
-            <div className="rounded-xl border bg-white shadow-sm">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
 
-                <div className="border-b px-6 py-4">
-                    <h2 className="text-lg font-semibold">
+                <div className="border-b border-slate-200 px-6 py-4">
+                    <h2 className="text-lg font-semibold text-slate-900">
                         Informações do Ganho
                     </h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-6">
+                    <div className="space-y-6">
 
-                    {/* MÊS/ANO + PLATAFORMA */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
                         <div>
-                            <label className="text-sm font-medium">
-                                Mês / Ano *
+                            <label className="block text-sm font-medium text-slate-700">
+                                Data <span className="text-red-500">*</span>
                             </label>
 
                             <input
-                                type="month"
-                                name="mesAno"
-                                value={formData.mesAno}
+                                type="date"
+                                name="data"
+                                value={formData.data}
                                 onChange={handleChange}
-                                className="mt-2 w-full border rounded-lg px-4 py-2"
+                                className={`mt-2 w-full rounded-lg border px-4 py-2 text-sm transition focus:outline-none ${errors.data
+                                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                                    }`}
                             />
+                            {errors.data && (
+                                <p className="mt-1 text-sm text-red-600">{errors.data}</p>
+                            )}
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium">
-                                Plataforma *
+                            <label className="block text-sm font-medium text-slate-700">
+                                Plataforma <span className="text-red-500">*</span>
                             </label>
 
                             <select
                                 name="plataforma"
                                 value={formData.plataforma}
                                 onChange={handleChange}
-                                className="mt-2 w-full border rounded-lg px-4 py-2"
+                                className={`mt-2 w-full rounded-lg border px-4 py-2 text-sm transition focus:outline-none ${errors.plataforma
+                                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                                    }`}
                             >
+                                <option value="">Selecione uma plataforma</option>
                                 <option value="Uber">Uber</option>
                                 <option value="99">99</option>
                                 <option value="Outros">Outros</option>
                             </select>
+                            {errors.plataforma && (
+                                <p className="mt-1 text-sm text-red-600">{errors.plataforma}</p>
+                            )}
                         </div>
                     </div>
 
-                    {/* VALOR */}
                     <div>
-                        <label className="text-sm font-medium">
-                            Valor Bruto *
+                        <label className="block text-sm font-medium text-slate-700">
+                            Valor Bruto <span className="text-red-500">*</span>
                         </label>
-
-                        <input
-                            type="number"
-                            name="valorBruto"
-                            value={formData.valorBruto}
-                            onChange={handleChange}
-                            className="mt-2 w-full border rounded-lg px-4 py-2"
-                        />
+                        <div className="relative mt-2">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                                R$
+                            </span>
+                            <input
+                                type="number"
+                                name="valorBruto"
+                                value={formData.valorBruto}
+                                onChange={handleChange}
+                                placeholder="0,00"
+                                step="0.01"
+                                min="0"
+                                className={`w-full rounded-lg border py-2 pl-10 pr-4 text-sm transition focus:outline-none ${errors.valorBruto
+                                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                                    }`}
+                            />
+                        </div>
+                        {errors.valorBruto && (
+                            <p className="mt-1 text-sm text-red-600">{errors.valorBruto}</p>
+                        )}
                     </div>
 
-                    {/* HORAS + KM */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                                Horas Trabalhadas
+                            </label>
+                            <div className="relative mt-2">
+                                <input
+                                    type="number"
+                                    name="horasTrabalhadas"
+                                    value={formData.horasTrabalhadas}
+                                    onChange={handleChange}
+                                    placeholder="0,00"
+                                    step="0.5"
+                                    min="0"
+                                    className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
+                                    h
+                                </span>
+                            </div>
+                        </div>
 
-                        <input
-                            type="number"
-                            name="horasTrabalhadas"
-                            placeholder="Horas"
-                            value={formData.horasTrabalhadas}
-                            onChange={handleChange}
-                            className="border rounded-lg px-4 py-2"
-                        />
-
-                        <input
-                            type="number"
-                            name="kmRodados"
-                            placeholder="KM"
-                            value={formData.kmRodados}
-                            onChange={handleChange}
-                            className="border rounded-lg px-4 py-2"
-                        />
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                                KM Rodados
+                            </label>
+                            <div className="relative mt-2">
+                                <input
+                                    type="number"
+                                    name="kmRodados"
+                                    value={formData.kmRodados}
+                                    onChange={handleChange}
+                                    placeholder="0"
+                                    step="1"
+                                    min="0"
+                                    className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
+                                    km
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* OBS */}
-                    <textarea
-                        name="observacao"
-                        value={formData.observacao}
-                        onChange={handleChange}
-                        rows={4}
-                        className="w-full border rounded-lg px-4 py-2"
-                    />
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">
+                            Observação
+                        </label>
+                        <textarea
+                            name="observacao"
+                            value={formData.observacao}
+                            onChange={handleChange}
+                            placeholder="Adicione qualquer observação sobre o ganho..."
+                            rows={4}
+                            className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                        />
+                    </div>
+                    </div>
 
-                    {/* BOTÕES */}
-                    <div className="flex gap-4 border-t pt-6">
+                    <div className="mt-8 flex gap-4 border-t border-slate-200 pt-6">
 
                         <Link
                             href="/uber/ganhos"
-                            className="px-6 py-2 border rounded-lg"
+                            className="flex items-center gap-2 rounded-lg border border-slate-300 px-6 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                         >
                             Cancelar
                         </Link>
 
                         <button
                             type="submit"
-                            className="flex items-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg"
+                            disabled={loading}
+                            className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <Save className="h-4 w-4" />
-                            Salvar
+                            {loading ? "Salvando..." : "Salvar Alterações"}
                         </button>
 
                     </div>

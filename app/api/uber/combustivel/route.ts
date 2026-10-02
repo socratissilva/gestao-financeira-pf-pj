@@ -37,6 +37,9 @@ export async function POST(req: Request) {
     const abastecimento = await AbastecimentoUber.create({
       ...body,
 
+      tipoCombustivel: body.tipoCombustivel,
+      tipoVeiculo: body.tipoVeiculo,
+
       userId: session.user.id,
 
       preco: `R$ ${precoUnitario}/L`,

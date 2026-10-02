@@ -37,6 +37,10 @@ interface Ganho {
 interface Combustivel {
     data: string;
     valor: number;
+    litros: number;
+    km: number;
+    tipoCombustivel?: "Gasolina" | "Etanol";
+    tipoVeiculo?: "Carro" | "Moto";
 }
 
 interface Manutencao {
@@ -47,6 +51,10 @@ interface Manutencao {
 export default function UberOverview() {
     const [filterType, setFilterType] =
         useState<"day" | "month" | "year">("month");
+    const [fuelFilter, setFuelFilter] =
+        useState<"Todos" | "Gasolina" | "Etanol">("Todos");
+    const [vehicleFilter, setVehicleFilter] =
+        useState<"Todos" | "Carro" | "Moto">("Todos");
 
     const hoje = new Date();
 
@@ -217,31 +225,71 @@ export default function UberOverview() {
 
                 return (
                     dataMes === Number(mes) &&
-                    dataAno === Number(ano)
+                    dataAno === Number(ano) &&
+                    (fuelFilter === "Todos" || item.tipoCombustivel === fuelFilter) &&
+                    (vehicleFilter === "Todos" || item.tipoVeiculo === vehicleFilter)
                 );
             }
 
             if (filterType === "year") {
-                return data.getUTCFullYear() === Number(selectedYear);
+                return (
+                    data.getUTCFullYear() === Number(selectedYear) &&
+                    (fuelFilter === "Todos" || item.tipoCombustivel === fuelFilter) &&
+                    (vehicleFilter === "Todos" || item.tipoVeiculo === vehicleFilter)
+                );
             }
 
             if (filterType === "day") {
                 return (
                     data >= new Date(startDate) &&
-                    data <= new Date(endDate)
+                    data <= new Date(endDate) &&
+                    (fuelFilter === "Todos" || item.tipoCombustivel === fuelFilter) &&
+                    (vehicleFilter === "Todos" || item.tipoVeiculo === vehicleFilter)
                 );
             }
 
-            return true;
+            return (
+                (fuelFilter === "Todos" || item.tipoCombustivel === fuelFilter) &&
+                (vehicleFilter === "Todos" || item.tipoVeiculo === vehicleFilter)
+            );
         });
     }, [
         combustiveis,
+        fuelFilter,
+        vehicleFilter,
         filterType,
         selectedMonth,
         selectedYear,
         startDate,
         endDate,
     ]);
+
+    const consumoPorCategoria = useMemo(() => {
+        return (["Carro", "Moto"] as const).flatMap((veiculo) =>
+            (["Gasolina", "Etanol"] as const).map((combustivel) => {
+                const abastecimentos = combustiveisFiltrados.filter(
+                    (item) =>
+                        item.tipoVeiculo === veiculo &&
+                        item.tipoCombustivel === combustivel
+                );
+                const litros = abastecimentos.reduce(
+                    (total, item) => total + Number(item.litros || 0),
+                    0
+                );
+                const km = abastecimentos.reduce(
+                    (total, item) => total + Number(item.km || 0),
+                    0
+                );
+
+                return {
+                    veiculo,
+                    combustivel,
+                    consumo: litros > 0 ? km / litros : null,
+                    quantidade: abastecimentos.length,
+                };
+            })
+        );
+    }, [combustiveisFiltrados]);
 
     const manutencoesFiltradas = useMemo(() => {
         return manutencoes.filter((item) => {
@@ -727,6 +775,44 @@ export default function UberOverview() {
                     </div>
 
                 </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-slate-200 pt-4">
+                    <label className="flex items-center gap-3">
+                        <Fuel className="h-4 w-4 text-orange-600" />
+                        <span className="text-sm font-medium text-slate-700">
+                            Combustível
+                        </span>
+                        <select
+                            value={fuelFilter}
+                            onChange={(e) =>
+                                setFuelFilter(e.target.value as typeof fuelFilter)
+                            }
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none"
+                        >
+                            <option value="Todos">Todos</option>
+                            <option value="Gasolina">Gasolina</option>
+                            <option value="Etanol">Etanol</option>
+                        </select>
+                    </label>
+
+                    <label className="flex items-center gap-3">
+                        <Car className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-slate-700">
+                            Veículo
+                        </span>
+                        <select
+                            value={vehicleFilter}
+                            onChange={(e) =>
+                                setVehicleFilter(e.target.value as typeof vehicleFilter)
+                            }
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                        >
+                            <option value="Todos">Todos</option>
+                            <option value="Carro">Carro</option>
+                            <option value="Moto">Moto</option>
+                        </select>
+                    </label>
+                </div>
             </div>
 
 
@@ -790,6 +876,77 @@ export default function UberOverview() {
                     );
                 })}
             </div>
+
+            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-200 px-6 py-4">
+                    <h2 className="text-lg font-semibold text-slate-900">
+                        Consumo médio por veículo e combustível
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                        Média ponderada em km/L no período e filtros selecionados
+                    </p>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[520px]">
+                        <thead className="bg-slate-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">
+                                    Veículo
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">
+                                    Gasolina
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">
+                                    Etanol
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                            {(["Carro", "Moto"] as const).map((veiculo) => (
+                                <tr key={veiculo}>
+                                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-900">
+                                        <span className="inline-flex items-center gap-2">
+                                            <Car className="h-4 w-4 text-blue-600" />
+                                            {veiculo}
+                                        </span>
+                                    </th>
+                                    {(["Gasolina", "Etanol"] as const).map((combustivel) => {
+                                        const dado = consumoPorCategoria.find(
+                                            (item) =>
+                                                item.veiculo === veiculo &&
+                                                item.combustivel === combustivel
+                                        );
+
+                                        return (
+                                            <td
+                                                key={combustivel}
+                                                className="px-6 py-4 text-sm text-slate-700"
+                                            >
+                                                {dado?.consumo !== null && dado?.consumo !== undefined ? (
+                                                    <>
+                                                        <span className="font-semibold text-slate-900">
+                                                            {dado.consumo.toLocaleString("pt-BR", {
+                                                                minimumFractionDigits: 1,
+                                                                maximumFractionDigits: 1,
+                                                            })} km/L
+                                                        </span>
+                                                        <span className="ml-2 text-xs text-slate-500">
+                                                            {dado.quantidade} abastecimentos
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-slate-400">Sem dados</span>
+                                                )}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
             {/* Gráfico Financeiro */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

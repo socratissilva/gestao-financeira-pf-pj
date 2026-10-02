@@ -15,6 +15,8 @@ interface Abastecimento {
   km: number;
   preco: number;
   consumo: number;
+  tipoCombustivel?: "Gasolina" | "Etanol";
+  tipoVeiculo?: "Carro" | "Moto";
 }
 
 export default function CombustivelUber() {
@@ -29,6 +31,8 @@ export default function CombustivelUber() {
 
   const [filterType, setFilterType] = useState<"day" | "month" | "year">("month");
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [fuelFilter, setFuelFilter] = useState("Todos");
+  const [vehicleFilter, setVehicleFilter] = useState("Todos");
 
   const [selectedYear, setSelectedYear] =
     useState(new Date().getFullYear().toString());
@@ -90,14 +94,21 @@ export default function CombustivelUber() {
 
     if (filterType === "month") {
       const [mes, ano] = selectedMonth.split("-");
-      return (
+      if (
         data.getMonth() + 1 === Number(mes) &&
         data.getFullYear() === Number(ano)
-      );
+      ) {
+        return fuelMatches(item) && vehicleMatches(item);
+      }
+      return false;
     }
 
     if (filterType === "year") {
-      return data.getFullYear() === Number(selectedYear);
+      return (
+        data.getFullYear() === Number(selectedYear) &&
+        fuelMatches(item) &&
+        vehicleMatches(item)
+      );
     }
 
     if (filterType === "day") {
@@ -107,11 +118,24 @@ export default function CombustivelUber() {
       inicio.setHours(0, 0, 0, 0);
       fim.setHours(23, 59, 59, 999);
 
-      return data >= inicio && data <= fim;
+      return (
+        data >= inicio &&
+        data <= fim &&
+        fuelMatches(item) &&
+        vehicleMatches(item)
+      );
     }
 
-    return true;
+    return fuelMatches(item) && vehicleMatches(item);
   });
+
+  function fuelMatches(item: Abastecimento) {
+    return fuelFilter === "Todos" || item.tipoCombustivel === fuelFilter;
+  }
+
+  function vehicleMatches(item: Abastecimento) {
+    return vehicleFilter === "Todos" || item.tipoVeiculo === vehicleFilter;
+  }
 
   const totalGastos = combustivelFiltrado.reduce((acc, c) => acc + c.valor, 0);
   const totalLitros = combustivelFiltrado.reduce((acc, c) => acc + c.litros, 0);
@@ -279,6 +303,34 @@ export default function CombustivelUber() {
               />
             </div>
           )}
+
+          <div className="flex flex-wrap gap-4 border-t border-slate-200 pt-4">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              Combustível
+              <select
+                value={fuelFilter}
+                onChange={(e) => setFuelFilter(e.target.value)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900 focus:border-orange-500 focus:outline-none"
+              >
+                <option value="Todos">Todos</option>
+                <option value="Gasolina">Gasolina</option>
+                <option value="Etanol">Etanol</option>
+              </select>
+            </label>
+
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              Veículo
+              <select
+                value={vehicleFilter}
+                onChange={(e) => setVehicleFilter(e.target.value)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900 focus:border-orange-500 focus:outline-none"
+              >
+                <option value="Todos">Todos</option>
+                <option value="Carro">Carro</option>
+                <option value="Moto">Moto</option>
+              </select>
+            </label>
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -329,6 +381,8 @@ export default function CombustivelUber() {
             <thead className="border-b border-slate-200 bg-slate-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">Data</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">Combustível</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">Veículo</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">Litros</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">Preço Unitário</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-600">KM Rodado</th>
@@ -346,6 +400,14 @@ export default function CombustivelUber() {
                     <tr key={abast._id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 text-sm text-slate-900">
                         {dataFormatada}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {abast.tipoCombustivel || "Não informado"}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {abast.tipoVeiculo || "Não informado"}
                       </td>
 
                       <td className="px-6 py-4 text-sm text-slate-600">
@@ -389,7 +451,7 @@ export default function CombustivelUber() {
               ) : (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     className="px-6 py-10 text-center text-sm text-slate-500"
                   >
                     Nenhum abastecimento encontrado para o período selecionado.

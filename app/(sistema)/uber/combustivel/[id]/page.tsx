@@ -20,6 +20,8 @@ export default function EditarAbastecimentoPage() {
 
   const [formData, setFormData] = useState({
     data: "",
+    tipoCombustivel: "",
+    tipoVeiculo: "",
     litros: "",
     km: "",
     valor: "",
@@ -54,6 +56,10 @@ export default function EditarAbastecimentoPage() {
           ? data.abastecimento.data.split("T")[0]
           : "",
 
+        tipoCombustivel: data.abastecimento?.tipoCombustivel ?? "",
+
+        tipoVeiculo: data.abastecimento?.tipoVeiculo ?? "",
+
         litros: String(data.abastecimento?.litros ?? ""),
 
         km: String(data.abastecimento?.km ?? ""),
@@ -76,6 +82,8 @@ export default function EditarAbastecimentoPage() {
 
     if (
       !formData.data ||
+      !formData.tipoCombustivel ||
+      !formData.tipoVeiculo ||
       !formData.litros ||
       !formData.km ||
       !formData.valor
@@ -91,6 +99,10 @@ export default function EditarAbastecimentoPage() {
         data: new Date(
           formData.data
         ).toISOString(),
+
+        tipoCombustivel: formData.tipoCombustivel,
+
+        tipoVeiculo: formData.tipoVeiculo,
 
         litros: Number(formData.litros),
 
@@ -196,6 +208,48 @@ export default function EditarAbastecimentoPage() {
               }
               className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Combustível
+            </label>
+            <select
+              required
+              value={formData.tipoCombustivel}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  tipoCombustivel: e.target.value,
+                })
+              }
+              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-2"
+            >
+              <option value="">Selecione o combustível</option>
+              <option value="Gasolina">Gasolina</option>
+              <option value="Etanol">Etanol</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Veículo
+            </label>
+            <select
+              required
+              value={formData.tipoVeiculo}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  tipoVeiculo: e.target.value,
+                })
+              }
+              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-2"
+            >
+              <option value="">Selecione o veículo</option>
+              <option value="Carro">Carro</option>
+              <option value="Moto">Moto</option>
+            </select>
           </div>
 
           {/* LITROS */}

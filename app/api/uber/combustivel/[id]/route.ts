@@ -119,6 +119,8 @@ export async function PUT(
         },
         {
           data: new Date(body.data),
+          tipoCombustivel: body.tipoCombustivel,
+          tipoVeiculo: body.tipoVeiculo,
           litros,
           km,
           valor,
@@ -128,6 +130,7 @@ export async function PUT(
         },
         {
           new: true,
+          runValidators: true,
         }
       );
 

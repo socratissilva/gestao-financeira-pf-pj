@@ -14,6 +14,18 @@ const AbastecimentoUberSchema = new Schema(
       required: true,
     },
 
+    tipoCombustivel: {
+      type: String,
+      enum: ["Gasolina", "Etanol"],
+      required: true,
+    },
+
+    tipoVeiculo: {
+      type: String,
+      enum: ["Carro", "Moto"],
+      required: true,
+    },
+
     litros: {
       type: Number,
       required: true,
