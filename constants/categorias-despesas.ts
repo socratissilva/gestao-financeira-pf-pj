@@ -12,6 +12,10 @@ export const CATEGORIAS_DESPESA = [
     { value: "KELECHI", label: "Kelechi" },
     { value: "INVESTIMENTOS", label: "Investimentos" },
     { value: "VIAGEM", label: "Viagem" },
+    { value: "VESTUARIO", label: "Vestuário" },
+    { value: "VIAGEM_TRANSPORTE", label: "Viagem-Transporte" },
+    { value: "VIAGEM_ALIMENTACAO", label: "Viagem-Alimentação" },
+    { value: "VIAGEM_EXTRAS", label: "Viagem-Extras" },
     { value: "OUTROS", label: "Outros" },
 ];
 
