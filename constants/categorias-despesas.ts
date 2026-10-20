@@ -2,6 +2,9 @@
 
 export const CATEGORIAS_DESPESA = [
     { value: "MORADIA", label: "Moradia" },
+    { value: "AGUA", label: "Água" },
+    { value: "LUZ", label: "Luz" },
+    { value: "INTERNET", label: "Internet" },
     { value: "ALIMENTACAO", label: "Alimentação" },
     { value: "TRANSPORTE", label: "Transporte" },
     { value: "SAUDE", label: "Saúde" },

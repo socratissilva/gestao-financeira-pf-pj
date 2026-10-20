@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from "recharts";
+import { CATEGORIAS_DESPESA_LABEL } from "@/constants/categorias-despesas";
 
 interface PieChartProps {
   data: Array<{
@@ -18,6 +19,17 @@ const CORES_PADRAO = [
   "#ec4899",
   "#14b8a6",
   "#f97316",
+  "#06b6d4",
+  "#84cc16",
+  "#f43f5e",
+  "#a3a3a3",
+  "#0f766e",
+  "#b45309",
+  "#4f46e5",
+  "#65a30d",
+  "#7c3aed",
+  "#be185d",
+  "#334155",
 ];
 
 export function DashboardPieChart({
@@ -25,10 +37,15 @@ export function DashboardPieChart({
   title,
   colors = CORES_PADRAO,
 }: PieChartProps) {
+  const dadosFormatados = data.map((item) => ({
+    ...item,
+    name: CATEGORIAS_DESPESA_LABEL[item.name] ?? item.name,
+  }));
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload?.length) {
       const valor = payload[0].value;
-      const total = data.reduce((acc, item) => acc + item.value, 0);
+      const total = dadosFormatados.reduce((acc, item) => acc + item.value, 0);
       const percentual = ((valor / total) * 100).toFixed(1);
 
       return (
@@ -47,16 +64,16 @@ export function DashboardPieChart({
   return (
     <div className="bg-white rounded-lg p-6 border border-gray-200">
       <h3 className="text-lg font-bold text-gray-800 mb-4">{title}</h3>
-      {data.length > 0 ? (
+      {dadosFormatados.length > 0 ? (
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
-              data={data}
+              data={dadosFormatados}
               cx="50%"
               cy="50%"
               labelLine={false}
               label={(entry) => {
-                const total = data.reduce((acc, item) => acc + item.value, 0);
+                const total = dadosFormatados.reduce((acc, item) => acc + item.value, 0);
                 const percentual = ((entry.value / total) * 100).toFixed(0);
                 return `${percentual}%`;
               }}
@@ -64,7 +81,7 @@ export function DashboardPieChart({
               fill="#8884d8"
               dataKey="value"
             >
-              {data.map((entry, index) => (
+              {dadosFormatados.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
               ))}
             </Pie>
