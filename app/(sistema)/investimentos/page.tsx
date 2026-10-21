@@ -17,7 +17,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -32,6 +31,9 @@ interface ChartDatum {
 }
 
 interface DashboardData {
+  operacoes: Array<{
+    tipoAtivo: string;
+  }>;
   posicoes: Array<{
     ticker: string;
     nome: string;
@@ -92,6 +94,95 @@ function pieTooltipFormatter(data: ChartDatum[]) {
   };
 }
 
+function PieDistributionCard({
+  title,
+  description,
+  data,
+  emptyMessage,
+}: {
+  title: string;
+  description: string;
+  data: ChartDatum[];
+  emptyMessage: string;
+}) {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+
+  return (
+    <section className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex min-h-[54px] items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="truncate font-bold text-slate-900">{title}</h2>
+          <p className="mt-1 truncate text-sm text-slate-500">{description}</p>
+        </div>
+        {total > 0 && (
+          <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+            {currency(total)}
+          </span>
+        )}
+      </div>
+
+      <div className="h-[190px] shrink-0">
+        {data.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius={62}
+                outerRadius={98}
+                paddingAngle={2}
+                stroke="#fff"
+                strokeWidth={2}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={pieTooltipFormatter(data)} />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center px-4 text-center text-sm text-slate-500">
+            {emptyMessage}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-1 border-t border-slate-100 pt-1.5">
+        {data.length > 0 ? (
+          <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 lg:grid-cols-4">
+            {data.map((item, index) => {
+              const share = total > 0 ? (item.value / total) * 100 : 0;
+
+              return (
+                <div
+                  key={item.name}
+                  title={`${item.name} · ${currency(item.value)} · ${share.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
+                  className="flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 transition-colors hover:bg-slate-50"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-[10px] font-semibold leading-4 text-slate-700">
+                    {item.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400">Os dados aparecerão quando houver posições cotadas.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function InvestimentosOverviewPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,6 +214,13 @@ export default function InvestimentosOverviewPage() {
 
   const unquoted = data?.posicoes.filter((position) => position.valorAtualBRL === null) ?? [];
   const sectors = data?.graficos.porSetor ?? [];
+  const assetDistribution = (data?.posicoes ?? [])
+    .filter((position) => position.valorAtualBRL !== null)
+    .map((position) => ({
+      name: position.ticker,
+      value: position.valorAtualBRL ?? 0,
+    }))
+    .sort((a, b) => b.value - a.value);
   const classes = (data?.graficos.porClasse ?? []).map((item) => ({
     ...item,
     name: CLASS_NAMES[item.name] ?? item.name,
@@ -136,6 +234,7 @@ export default function InvestimentosOverviewPage() {
     { type: "RENDA_FIXA", title: "Renda fixa" },
   ].map(({ type, title }) => ({
     title,
+    hasEntries: (data?.operacoes ?? []).some((operation) => operation.tipoAtivo === type),
     data: (data?.posicoes ?? [])
       .filter((position) => position.tipoAtivo === type && position.valorAtualBRL !== null)
       .map((position) => ({
@@ -222,43 +321,31 @@ export default function InvestimentosOverviewPage() {
           )}
 
           <div className="grid gap-5 xl:grid-cols-2">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="font-bold text-slate-900">Distribuição por setor</h2>
-              <p className="mt-1 text-sm text-slate-500">Valor atual das posições com preço disponível</p>
-              <div className="mt-4 h-[320px]">
-                {sectors.length ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={sectors} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={65} outerRadius={105} paddingAngle={2}>
-                        {sectors.map((entry, index) => <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip formatter={pieTooltipFormatter(sectors)} />
-                      <Legend verticalAlign="bottom" />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : <div className="flex h-full items-center justify-center text-sm text-slate-500">Registre operações e obtenha cotações para ver a distribuição.</div>}
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="font-bold text-slate-900">Distribuição por classe</h2>
-              <p className="mt-1 text-sm text-slate-500">Alocação atual entre classes de ativos</p>
-              <div className="mt-4 h-[320px]">
-                {classes.length ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={classes} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={65} outerRadius={105} paddingAngle={2}>
-                        {classes.map((entry, index) => <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip formatter={pieTooltipFormatter(classes)} />
-                      <Legend verticalAlign="bottom" />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : <div className="flex h-full items-center justify-center text-sm text-slate-500">Sem dados para exibir.</div>}
-              </div>
-            </section>
-
+            <PieDistributionCard
+              title="Distribuição da carteira"
+              description="Alocação atual entre classes de ativos"
+              data={classes}
+              emptyMessage="Sem dados para exibir."
+            />
+            <PieDistributionCard
+              title="Distribuição por setor"
+              description="Valor atual das posições com preço disponível"
+              data={sectors}
+              emptyMessage="Registre operações e obtenha cotações para ver a distribuição."
+            />
           </div>
+
+          <PieDistributionCard
+            title="Distribuição por ativos"
+            description="Participação e valor de cada ativo no total cotado da carteira"
+            data={assetDistribution}
+            emptyMessage="Sem posições cotadas para exibir."
+          />
+          {unquoted.length > 0 && (
+            <div className="-mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+              {unquoted.length} ativo(s) sem cotação não entram no gráfico: {unquoted.map((position) => position.ticker).join(", ")}.
+            </div>
+          )}
 
           <section className="space-y-4">
             <div>
@@ -266,28 +353,14 @@ export default function InvestimentosOverviewPage() {
               <p className="mt-1 text-sm text-slate-500">Cada gráfico mostra o peso de cada ativo dentro da respectiva classe.</p>
             </div>
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {assetTypeCharts.map((chart) => (
-                <section key={chart.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <h3 className="font-bold text-slate-900">{chart.title}</h3>
-                  <p className="mt-1 text-sm text-slate-500">Distribuição por ativo</p>
-                  <div className="mt-4 h-[300px]">
-                    {chart.data.length ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={chart.data} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={58} outerRadius={95} paddingAngle={2}>
-                            {chart.data.map((entry, index) => <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />)}
-                          </Pie>
-                          <Tooltip formatter={pieTooltipFormatter(chart.data)} />
-                          <Legend verticalAlign="bottom" />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                        Nenhum ativo cotado nesta classe.
-                      </div>
-                    )}
-                  </div>
-                </section>
+              {assetTypeCharts.filter((chart) => chart.hasEntries).map((chart) => (
+                <PieDistributionCard
+                  key={chart.title}
+                  title={chart.title}
+                  description="Distribuição por ativo"
+                  data={chart.data}
+                  emptyMessage="Não há posições abertas cotadas nesta classe."
+                />
               ))}
             </div>
           </section>

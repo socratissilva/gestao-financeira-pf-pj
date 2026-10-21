@@ -216,7 +216,7 @@ export async function POST(request: Request) {
       return jsonError("Corpo da operação inválido.", 400);
     }
     const ticker = String(body.ticker ?? "").trim().toUpperCase();
-    const nome = String(body.nome ?? "").trim();
+    const nomeInformado = String(body.nome ?? "").trim();
     const setor = String(body.setor ?? "").trim().slice(0, 80) || "Não informado";
     const tipoAtivo = body.tipoAtivo;
     const lado = body.lado;
@@ -227,9 +227,10 @@ export async function POST(request: Request) {
     let cambio = Number(body.cambio ?? 1);
     const dataOperacao = new Date(body.dataOperacao);
 
-    if (!/^[A-Z0-9.^=-]{1,20}$/.test(ticker)) return jsonError("Ticker inválido.", 400);
-    if (!nome || nome.length > 120) return jsonError("Informe o nome do ativo (máximo 120 caracteres).", 400);
+    if (!/^[A-Z0-9.^=+-]{1,20}$/.test(ticker)) return jsonError("Ticker inválido.", 400);
     if (!isOneOf(tipoAtivo, TIPOS_ATIVO)) return jsonError("Tipo de ativo inválido.", 400);
+    const nome = nomeInformado || (tipoAtivo === "RENDA_FIXA" ? ticker : "");
+    if (!nome || nome.length > 120) return jsonError("Informe o nome do ativo (máximo 120 caracteres).", 400);
     if (!isOneOf(lado, LADOS_OPERACAO)) return jsonError("Tipo de operação inválido.", 400);
     if (!isOneOf(moeda, MOEDAS_INVESTIMENTO)) return jsonError("Moeda não suportada.", 400);
     if (!Number.isFinite(quantidade) || quantidade <= 0) return jsonError("A quantidade deve ser maior que zero.", 400);
@@ -303,7 +304,7 @@ export async function PUT(request: Request) {
     }
     const ticker = String(body.ticker ?? "").trim().toUpperCase();
     const preco = Number(body.preco);
-    if (!/^[A-Z0-9.^=-]{1,20}$/.test(ticker)) return jsonError("Ticker inválido.", 400);
+    if (!/^[A-Z0-9.^=+-]{1,20}$/.test(ticker)) return jsonError("Ticker inválido.", 400);
     if (!Number.isFinite(preco) || preco < 0) return jsonError("Informe um preço atual válido.", 400);
 
     await connectDB();

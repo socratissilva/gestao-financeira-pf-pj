@@ -153,6 +153,14 @@ export default function CarteiraInvestimentosPage() {
 
   useEffect(() => {
     const ticker = form.ticker.trim().toUpperCase();
+    if (form.tipoAtivo === "RENDA_FIXA") {
+      setAssetLookup({
+        loading: false,
+        message: "Renda fixa: informe o ticker ou identificador manualmente.",
+        source: "",
+      });
+      return;
+    }
     if (!ticker) {
       setAssetLookup({ loading: false, message: "", source: "" });
       return;
@@ -378,7 +386,7 @@ export default function CarteiraInvestimentosPage() {
             </select>
           </label>
           <label className="text-sm font-semibold text-slate-600">
-            Ticker / identificador
+            {form.tipoAtivo === "RENDA_FIXA" ? "Ticker / identificador manual" : "Ticker / identificador"}
             <input
               required
               maxLength={20}
@@ -393,7 +401,13 @@ export default function CarteiraInvestimentosPage() {
                 });
                 setAssetLookup({ loading: false, message: "", source: "" });
               }}
-              placeholder={form.tipoAtivo === "CRIPTO" ? "BTC" : "PETR4 ou AAPL"}
+              placeholder={
+                form.tipoAtivo === "RENDA_FIXA"
+                  ? "Ex.: CDB-BANCO-2026"
+                  : form.tipoAtivo === "CRIPTO"
+                    ? "BTC"
+                    : "PETR4 ou AAPL"
+              }
               className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 font-normal uppercase text-slate-900"
             />
             {assetLookup.message && (
@@ -405,7 +419,8 @@ export default function CarteiraInvestimentosPage() {
           </label>
           <label className="text-sm font-semibold text-slate-600">
             Nome do ativo
-            <input required maxLength={120} value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })} placeholder="Nome ou descrição" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 font-normal text-slate-900" />
+            <input required={form.tipoAtivo !== "RENDA_FIXA"} maxLength={120} value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })} placeholder={form.tipoAtivo === "RENDA_FIXA" ? "Opcional: descrição do investimento" : "Nome ou descrição"} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 font-normal text-slate-900" />
+            {form.tipoAtivo === "RENDA_FIXA" && <span className="mt-1 block text-xs font-normal text-slate-500">Se deixar em branco, o identificador manual será usado como nome.</span>}
           </label>
           <label className="text-sm font-semibold text-slate-600">
             Setor

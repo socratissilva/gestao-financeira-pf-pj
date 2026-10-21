@@ -165,7 +165,7 @@ export async function GET(request: Request) {
     const tipoAtivo = (params.get("tipoAtivo") ?? "").trim().toUpperCase();
     const moeda = (params.get("moeda") ?? "BRL").trim().toUpperCase();
 
-    if (!/^[A-Z0-9.^=-]{1,20}$/.test(ticker)) {
+    if (!/^[A-Z0-9.^=+-]{1,20}$/.test(ticker)) {
       return NextResponse.json({ error: "Ticker inválido." }, { status: 400 });
     }
     if (!isTipoAtivo(tipoAtivo)) {
