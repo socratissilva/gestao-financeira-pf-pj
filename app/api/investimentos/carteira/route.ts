@@ -21,6 +21,7 @@ import OperacaoInvestimento, {
   type TipoAtivo,
 } from "@/models/OperacaoInvestimento";
 import PrecoManualInvestimento from "@/models/PrecoManualInvestimento";
+import SnapshotPatrimonioInvestimento from "@/models/SnapshotPatrimonioInvestimento";
 
 export const runtime = "nodejs";
 
@@ -142,6 +143,46 @@ export async function GET() {
     );
     const valorAtualBRL = valuationComplete ? valorCotadoBRL : null;
     const totalInvestidoBRL = positions.reduce((total, position) => total + position.custoBRL, 0);
+    const dateKey = new Date().toISOString().slice(0, 10);
+    const porClasseSnapshot = TIPOS_ATIVO.flatMap((tipoAtivo) => {
+      const classPositions = hydratedPositions.filter(
+        (position) => position.tipoAtivo === tipoAtivo
+      );
+      if (classPositions.length === 0) return [];
+
+      const valuationComplete = classPositions.every(
+        (position) => position.valorAtualBRL !== null
+      );
+      return [{
+        tipoAtivo,
+        investidoBRL: classPositions.reduce(
+          (total, position) => total + position.custoBRL,
+          0
+        ),
+        valorAtualBRL: valuationComplete
+          ? classPositions.reduce(
+              (total, position) => total + (position.valorAtualBRL ?? 0),
+              0
+            )
+          : null,
+      }];
+    });
+
+    await SnapshotPatrimonioInvestimento.updateOne(
+      { userId, dateKey },
+      {
+        $setOnInsert: {
+          userId,
+          dateKey,
+          valuationComplete,
+          porClasse: porClasseSnapshot,
+        },
+      },
+      { upsert: true }
+    );
+    const snapshots = await SnapshotPatrimonioInvestimento.find({ userId })
+      .sort({ dateKey: 1 })
+      .lean();
 
     function groupBy<T extends { valorAtualBRL: number | null }>(
       key: (position: (typeof hydratedPositions)[number]) => string
@@ -194,6 +235,15 @@ export async function GET() {
         porSetor: groupBy((position) => position.setor || "Não informado"),
         porClasse: groupBy((position) => position.tipoAtivo),
       },
+      historicoPatrimonial: snapshots.map((snapshot) => ({
+        dateKey: snapshot.dateKey,
+        valuationComplete: snapshot.valuationComplete,
+        porClasse: snapshot.porClasse.map((item) => ({
+          tipoAtivo: item.tipoAtivo,
+          investidoBRL: item.investidoBRL,
+          valorAtualBRL: item.valorAtualBRL,
+        })),
+      })),
       avisoCotacoes:
         "Cotações públicas podem ter atraso, limites ou indisponibilidade. Yahoo Finance não oferece SLA; CoinGecko pode limitar chamadas. Não é um feed profissional em tempo real.",
     });
