@@ -6,14 +6,20 @@ import PageHeader from "@/components/PageHeader/PageHeader";
 import {
   AlertTriangle,
   Briefcase,
+  ChartNoAxesCombined,
+  ChevronDown,
+  CircleDollarSign,
   LoaderCircle,
   Plus,
   RefreshCw,
   Trash2,
+  TrendingUp,
+  X,
 } from "lucide-react";
 
 type TipoAtivo = "ACAO" | "FII" | "ETF" | "BDR" | "CRIPTO" | "RENDA_FIXA";
 type Moeda = "BRL" | "USD" | "EUR" | "GBP";
+type HistoryFilterType = "all" | "month" | "year";
 
 interface Posicao {
   ticker: string;
@@ -72,6 +78,14 @@ const tiposAtivo: Array<{ value: TipoAtivo; label: string }> = [
   { value: "RENDA_FIXA", label: "Renda fixa" },
 ];
 
+const gruposPosicoes: Array<{ label: string; tipos: TipoAtivo[] }> = [
+  { label: "Ações", tipos: ["ACAO"] },
+  { label: "FIIs", tipos: ["FII"] },
+  { label: "Renda fixa", tipos: ["RENDA_FIXA"] },
+  { label: "ETFs", tipos: ["ETF"] },
+  { label: "Outros ativos", tipos: ["BDR", "CRIPTO"] },
+];
+
 function formatCurrency(value: number, currency: string = "BRL") {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -97,6 +111,10 @@ export default function CarteiraInvestimentosPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isOperationModalOpen, setIsOperationModalOpen] = useState(false);
+  const [historyFilterType, setHistoryFilterType] = useState<HistoryFilterType>("all");
+  const [historyMonth, setHistoryMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [historyYear, setHistoryYear] = useState(String(new Date().getFullYear()));
   const [error, setError] = useState("");
   const [assetLookup, setAssetLookup] = useState<{
     loading: boolean;
@@ -254,6 +272,7 @@ export default function CarteiraInvestimentosPage() {
         precoUnitario: "",
         taxas: "0",
       }));
+      setIsOperationModalOpen(false);
       await loadPortfolio(true);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Não foi possível registrar a operação.");
@@ -299,6 +318,15 @@ export default function CarteiraInvestimentosPage() {
   }
 
   const summary = data?.resumo;
+  const historyYears = [...new Set([
+    String(new Date().getFullYear()),
+    ...(data?.operacoes.map((operation) => operation.dataOperacao.slice(0, 4)) ?? []),
+  ])].sort((a, b) => b.localeCompare(a));
+  const filteredOperations = (data?.operacoes ?? []).filter((operation) => {
+    if (historyFilterType === "month") return operation.dataOperacao.slice(0, 7) === historyMonth;
+    if (historyFilterType === "year") return operation.dataOperacao.slice(0, 4) === historyYear;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -321,6 +349,18 @@ export default function CarteiraInvestimentosPage() {
           </Link>
           <button
             type="button"
+            onClick={() => {
+              setError("");
+              setIsOperationModalOpen(true);
+            }}
+            aria-haspopup="dialog"
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+          >
+            <Plus className="h-4 w-4" />
+            Registrar operação
+          </button>
+          <button
+            type="button"
             onClick={() => void loadPortfolio(true)}
             disabled={refreshing}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
@@ -340,31 +380,92 @@ export default function CarteiraInvestimentosPage() {
               detail: summary?.valuationComplete
                 ? "Posições atualizadas"
                 : `Subtotal cotado: ${formatCurrency(summary?.valorCotadoBRL ?? 0)}`,
+              icon: Briefcase,
+              iconStyle: "bg-blue-50 text-blue-700",
+              accent: "from-blue-500 to-cyan-400",
+              valueStyle: "text-slate-950",
             },
-            { label: "Total investido", value: formatCurrency(summary?.totalInvestidoBRL ?? 0), detail: "Custo das posições abertas" },
+            {
+              label: "Total investido",
+              value: formatCurrency(summary?.totalInvestidoBRL ?? 0),
+              detail: "Custo das posições abertas",
+              icon: CircleDollarSign,
+              iconStyle: "bg-violet-50 text-violet-700",
+              accent: "from-violet-500 to-fuchsia-400",
+              valueStyle: "text-slate-950",
+            },
             {
               label: "Resultado em aberto",
               value: summary?.lucroNaoRealizadoBRL === null ? "—" : formatCurrency(summary?.lucroNaoRealizadoBRL ?? 0),
               detail: `${formatPercent(summary?.rentabilidadePercentual ?? null)} de rentabilidade`,
-              tone: (summary?.lucroNaoRealizadoBRL ?? 0) >= 0 ? "text-emerald-700" : "text-rose-700",
+              icon: TrendingUp,
+              iconStyle: (summary?.lucroNaoRealizadoBRL ?? 0) >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700",
+              accent: (summary?.lucroNaoRealizadoBRL ?? 0) >= 0 ? "from-emerald-500 to-teal-400" : "from-rose-500 to-orange-400",
+              valueStyle: (summary?.lucroNaoRealizadoBRL ?? 0) >= 0 ? "text-emerald-700" : "text-rose-700",
             },
-            { label: "Resultado realizado", value: formatCurrency(summary?.lucroRealizadoBRL ?? 0), detail: "Vendas já encerradas" },
+            {
+              label: "Resultado realizado",
+              value: formatCurrency(summary?.lucroRealizadoBRL ?? 0),
+              detail: "Vendas já encerradas",
+              icon: ChartNoAxesCombined,
+              iconStyle: "bg-amber-50 text-amber-700",
+              accent: "from-amber-500 to-yellow-400",
+              valueStyle: (summary?.lucroRealizadoBRL ?? 0) >= 0 ? "text-slate-950" : "text-rose-700",
+            },
           ].map((card) => (
-            <section key={card.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">{card.label}</p>
-              <p className={`mt-2 text-2xl font-bold text-slate-900 ${card.tone ?? ""}`}>{card.value}</p>
-              <p className="mt-1 text-xs text-slate-500">{card.detail}</p>
+            <section key={card.label} className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+              <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${card.accent}`} />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">{card.label}</p>
+                  <p className={`mt-3 text-2xl font-bold tracking-tight ${card.valueStyle}`}>{card.value}</p>
+                </div>
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${card.iconStyle}`}>
+                  <card.icon className="h-5 w-5" />
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">{card.detail}</p>
             </section>
           ))}
         </div>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-5">
-          <h2 className="text-lg font-bold text-slate-900">Registrar operação</h2>
-          <p className="mt-1 text-sm text-slate-500">O preço médio é calculado pelas compras e reduzido proporcionalmente nas vendas.</p>
-        </div>
-        <form onSubmit={submitOperation} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {isOperationModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operation-modal-title"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !saving) setIsOperationModalOpen(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && !saving) setIsOperationModalOpen(false);
+          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm"
+        >
+          <section className="my-auto w-full max-w-5xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 id="operation-modal-title" className="text-lg font-bold text-slate-900">Registrar operação</h2>
+                <p className="mt-1 text-sm text-slate-500">O preço médio é calculado pelas compras e reduzido proporcionalmente nas vendas.</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Fechar formulário de operação"
+                onClick={() => setIsOperationModalOpen(false)}
+                disabled={saving}
+                autoFocus
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {error && (
+              <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{error}
+              </div>
+            )}
+            <form onSubmit={submitOperation} className="grid max-h-[75vh] gap-4 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-4">
           <label className="text-sm font-semibold text-slate-600">
             Tipo de ativo
             <select
@@ -465,92 +566,192 @@ export default function CarteiraInvestimentosPage() {
               Registrar operação
             </button>
           </div>
-        </form>
-        <p className="mt-3 text-xs text-slate-500">Para ativos em moeda estrangeira, informe o câmbio BRL aplicado na data da operação. Tickers B3 usam o sufixo .SA automaticamente nas consultas.</p>
-      </section>
+            </form>
+            <p className="mt-3 text-xs text-slate-500">Para ativos em moeda estrangeira, informe o câmbio BRL aplicado na data da operação. Tickers B3 usam o sufixo .SA automaticamente nas consultas.</p>
+          </section>
+        </div>
+      )}
 
-      {error && (
+      {error && !isOperationModalOpen && (
         <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{error}
         </div>
       )}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Posições atuais</h2>
-            <p className="mt-1 text-sm text-slate-500">Valores patrimoniais convertidos para BRL pelo câmbio atual.</p>
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <Briefcase className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Posições atuais</h2>
+              <p className="mt-1 text-sm text-slate-500">Ativos agrupados por categoria · valores em BRL pelo câmbio atual.</p>
+            </div>
           </div>
-          {loading && <LoaderCircle className="h-5 w-5 animate-spin text-slate-500" />}
+          <div className="flex items-center gap-2 self-start rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 sm:self-auto">
+            {loading && <LoaderCircle className="h-3.5 w-3.5 animate-spin text-blue-600" />}
+            {summary?.quantidadeAtivos ?? 0} {summary?.quantidadeAtivos === 1 ? "ativo" : "ativos"}
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-              <tr>{["Ativo", "Setor", "Qtd.", "Preço médio", "Preço atual", "Variação", "Saldo", "Resultado", ""].map((heading) => <th key={heading} className="px-4 py-3 font-semibold">{heading}</th>)}</tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data?.posicoes.map((position) => (
-                <tr key={position.ticker} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-4">
-                    <p className="font-bold text-slate-900">{position.ticker}</p>
-                    <p className="max-w-48 truncate text-xs text-slate-500">{position.nome} · {tipoLabel(position.tipoAtivo)}</p>
-                  </td>
-                  <td className="px-4 py-4 text-slate-600">{position.setor}</td>
-                  <td className="px-4 py-4 font-medium text-slate-700">{position.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 8 })}</td>
-                  <td className="px-4 py-4 text-slate-700">{formatCurrency(position.precoMedio, position.moeda)}</td>
-                  <td className="px-4 py-4">
-                    {position.cotacaoManual ? (
-                      <div className="flex items-center gap-2">
-                        <input aria-label={`Preço atual manual de ${position.ticker}`} type="number" min="0" step="any" value={manualPrices[position.ticker] ?? ""} onChange={(event) => setManualPrices({ ...manualPrices, [position.ticker]: event.target.value })} className="w-28 rounded-lg border border-slate-300 px-2 py-1" />
-                        <button type="button" onClick={() => void saveManualPrice(position.ticker)} className="rounded-lg bg-slate-900 px-2 py-1 text-xs font-semibold text-white">Salvar</button>
-                      </div>
-                    ) : position.precoAtual === null ? <span title={position.erroCotacao ?? ""} className="text-rose-700">Indisponível</span> : formatCurrency(position.precoAtual, position.moeda)}
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      {position.fonteCotacao}
-                      {position.cotacaoAtualizadaEm && ` · ${new Date(position.cotacaoAtualizadaEm).toLocaleString("pt-BR")}`}
-                    </p>
-                  </td>
-                  <td className={`px-4 py-4 font-semibold ${(position.variacaoPercentual ?? 0) >= 0 ? "text-emerald-700" : "text-rose-700"}`}>{position.variacaoPercentual === null ? "—" : formatPercent(position.variacaoPercentual)}</td>
-                  <td className="px-4 py-4 font-semibold text-slate-900">{position.valorAtualBRL === null ? "—" : formatCurrency(position.valorAtualBRL)}</td>
-                  <td className={`px-4 py-4 font-semibold ${(position.resultadoBRL ?? 0) >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                    {position.resultadoBRL === null ? "—" : formatCurrency(position.resultadoBRL)}
-                    <span className="block text-xs">{formatPercent(position.rentabilidadePercentual)}</span>
-                  </td>
-                  <td className="px-4 py-4">
-                    {position.erroCotacao && <span title={position.erroCotacao} className="inline-flex text-amber-600"><AlertTriangle className="h-4 w-4" /></span>}
-                  </td>
-                </tr>
-              ))}
-              {!loading && !data?.posicoes.length && <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-500">Nenhuma posição cadastrada. Registre sua primeira compra acima.</td></tr>}
-            </tbody>
-          </table>
+        <div className="space-y-3 p-4 sm:p-5">
+          {data && data.posicoes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-12 text-center">
+              <Briefcase className="mx-auto h-8 w-8 text-slate-300" />
+              <p className="mt-3 font-semibold text-slate-700">Sua carteira ainda está vazia</p>
+              <p className="mt-1 text-sm text-slate-500">Registre sua primeira compra para acompanhar suas posições aqui.</p>
+            </div>
+          ) : (
+            gruposPosicoes.map((group) => {
+              const positions = (data?.posicoes ?? []).filter((position) => group.tipos.includes(position.tipoAtivo));
+              if (!positions.length) return null;
+              const currentValue = positions.reduce((total, position) => total + (position.valorAtualBRL ?? 0), 0);
+              const hasUnpricedPosition = positions.some((position) => position.valorAtualBRL === null);
+              const investedValue = positions.reduce((total, position) => total + position.custoBRL, 0);
+
+              return (
+                <details key={group.label} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white open:border-slate-300">
+                  <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-4 transition hover:bg-slate-50/80 [&::-webkit-details-marker]:hidden">
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-600">
+                        {positions.length.toString().padStart(2, "0")}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-bold text-slate-900">{group.label}</span>
+                        <span className="mt-0.5 block text-xs text-slate-500">
+                          {positions.length} {positions.length === 1 ? "ativo" : "ativos"} · Investido {formatCurrency(investedValue)}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-3 sm:gap-5">
+                      <span className="text-right">
+                        <span className="block text-[11px] font-medium uppercase tracking-wide text-slate-400">Valor atual</span>
+                        <span className="mt-0.5 block text-sm font-bold text-slate-800">
+                          {hasUnpricedPosition ? `Parcial · ${formatCurrency(currentValue)}` : formatCurrency(currentValue)}
+                        </span>
+                      </span>
+                      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+                    </span>
+                  </summary>
+                  <div className="border-t border-slate-100">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[1100px] text-left text-sm">
+                        <thead className="bg-slate-50/80 text-[11px] uppercase tracking-wide text-slate-500">
+                          <tr>{["Ativo", "Setor", "Qtd.", "Preço médio", "Preço atual", "Variação", "Saldo", "Resultado", ""].map((heading) => <th key={heading} className="px-4 py-3 font-semibold">{heading}</th>)}</tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {positions.map((position) => (
+                            <tr key={position.ticker} className="transition hover:bg-slate-50/70">
+                              <td className="px-4 py-4">
+                                <p className="font-bold text-slate-900">{position.ticker}</p>
+                                <p className="max-w-48 truncate text-xs text-slate-500">{position.nome} · {tipoLabel(position.tipoAtivo)}</p>
+                              </td>
+                              <td className="px-4 py-4 text-slate-600">{position.setor || "—"}</td>
+                              <td className="px-4 py-4 font-medium text-slate-700">{position.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 8 })}</td>
+                              <td className="px-4 py-4 text-slate-700">{formatCurrency(position.precoMedio, position.moeda)}</td>
+                              <td className="px-4 py-4">
+                                {position.cotacaoManual ? (
+                                  <div className="flex items-center gap-2">
+                                    <input aria-label={`Preço atual manual de ${position.ticker}`} type="number" min="0" step="any" value={manualPrices[position.ticker] ?? ""} onChange={(event) => setManualPrices({ ...manualPrices, [position.ticker]: event.target.value })} className="w-28 rounded-lg border border-slate-300 px-2 py-1" />
+                                    <button type="button" onClick={() => void saveManualPrice(position.ticker)} className="rounded-lg bg-slate-900 px-2 py-1 text-xs font-semibold text-white">Salvar</button>
+                                  </div>
+                                ) : position.precoAtual === null ? <span title={position.erroCotacao ?? ""} className="text-rose-700">Indisponível</span> : formatCurrency(position.precoAtual, position.moeda)}
+                                <p className="mt-1 text-[11px] text-slate-400">
+                                  {position.fonteCotacao}
+                                  {position.cotacaoAtualizadaEm && ` · ${new Date(position.cotacaoAtualizadaEm).toLocaleString("pt-BR")}`}
+                                </p>
+                              </td>
+                              <td className={`px-4 py-4 font-semibold ${(position.variacaoPercentual ?? 0) >= 0 ? "text-emerald-700" : "text-rose-700"}`}>{position.variacaoPercentual === null ? "—" : formatPercent(position.variacaoPercentual)}</td>
+                              <td className="px-4 py-4 font-semibold text-slate-900">{position.valorAtualBRL === null ? "—" : formatCurrency(position.valorAtualBRL)}</td>
+                              <td className={`px-4 py-4 font-semibold ${(position.resultadoBRL ?? 0) >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                                {position.resultadoBRL === null ? "—" : formatCurrency(position.resultadoBRL)}
+                                <span className="block text-xs">{formatPercent(position.rentabilidadePercentual)}</span>
+                              </td>
+                              <td className="px-4 py-4">
+                                {position.erroCotacao && <span title={position.erroCotacao} className="inline-flex text-amber-600"><AlertTriangle className="h-4 w-4" /></span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
+              );
+            })
+          )}
         </div>
         {data && <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">{data.avisoCotacoes}</p>}
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-lg font-bold text-slate-900">Histórico de operações</h2>
+      <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 transition hover:bg-slate-50/80 [&::-webkit-details-marker]:hidden">
+          <span>
+            <span className="block font-bold text-slate-900">Histórico de operações</span>
+            <span className="mt-1 block text-sm text-slate-500">
+              {data?.operacoes.length ?? 0} {(data?.operacoes.length ?? 0) === 1 ? "operação registrada" : "operações registradas"}
+            </span>
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-slate-100">
+          <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="history-filter-type" className="text-sm font-medium text-slate-600">Exibir</label>
+              <select
+                id="history-filter-type"
+                value={historyFilterType}
+                onChange={(event) => setHistoryFilterType(event.target.value as HistoryFilterType)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="all">Todos</option>
+                <option value="month">Por mês</option>
+                <option value="year">Por ano</option>
+              </select>
+              {historyFilterType === "month" && (
+                <input
+                  aria-label="Filtrar operações por mês"
+                  type="month"
+                  value={historyMonth}
+                  onChange={(event) => setHistoryMonth(event.target.value)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              )}
+              {historyFilterType === "year" && (
+                <select
+                  aria-label="Filtrar operações por ano"
+                  value={historyYear}
+                  onChange={(event) => setHistoryYear(event.target.value)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                >
+                  {historyYears.map((year) => <option key={year} value={year}>{year}</option>)}
+                </select>
+              )}
+            </div>
+            <span className="text-xs font-medium text-slate-500">
+              {filteredOperations.length} {filteredOperations.length === 1 ? "operação encontrada" : "operações encontradas"}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>{["Data", "Operação", "Ativo", "Quantidade", "Preço unitário", "Ação"].map((heading) => <th key={heading} className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredOperations.map((operation) => (
+                  <tr key={operation.id}>
+                    <td className="px-4 py-3 text-slate-600">{new Date(`${operation.dataOperacao.slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR")}</td>
+                    <td className={`px-4 py-3 font-semibold ${operation.lado === "COMPRA" ? "text-emerald-700" : "text-rose-700"}`}>{operation.lado}</td>
+                    <td className="px-4 py-3"><span className="font-semibold text-slate-900">{operation.ticker}</span><span className="ml-2 text-slate-500">{operation.nome}</span></td>
+                    <td className="px-4 py-3 text-slate-700">{operation.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 8 })}</td>
+                    <td className="px-4 py-3 text-slate-700">{formatCurrency(operation.precoUnitario, operation.moeda)}</td>
+                    <td className="px-4 py-3"><button type="button" aria-label={`Excluir operação de ${operation.ticker}`} onClick={() => void deleteOperation(operation)} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="h-4 w-4" /></button></td>
+                  </tr>
+                ))}
+                {!loading && !filteredOperations.length && <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">{data?.operacoes.length ? "Nenhuma operação encontrada neste período." : "Ainda não há operações registradas."}</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>{["Data", "Operação", "Ativo", "Quantidade", "Preço unitário", "Ação"].map((heading) => <th key={heading} className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
-            <tbody className="divide-y divide-slate-100">
-              {data?.operacoes.map((operation) => (
-                <tr key={operation.id}>
-                  <td className="px-4 py-3 text-slate-600">{new Date(`${operation.dataOperacao.slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR")}</td>
-                  <td className={`px-4 py-3 font-semibold ${operation.lado === "COMPRA" ? "text-emerald-700" : "text-rose-700"}`}>{operation.lado}</td>
-                  <td className="px-4 py-3"><span className="font-semibold text-slate-900">{operation.ticker}</span><span className="ml-2 text-slate-500">{operation.nome}</span></td>
-                  <td className="px-4 py-3 text-slate-700">{operation.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 8 })}</td>
-                  <td className="px-4 py-3 text-slate-700">{formatCurrency(operation.precoUnitario, operation.moeda)}</td>
-                  <td className="px-4 py-3"><button type="button" aria-label={`Excluir operação de ${operation.ticker}`} onClick={() => void deleteOperation(operation)} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="h-4 w-4" /></button></td>
-                </tr>
-              ))}
-              {!loading && !data?.operacoes.length && <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Ainda não há operações registradas.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      </details>
     </div>
   );
 }
