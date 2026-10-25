@@ -12,16 +12,117 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0b1220;
+  --foreground: #e2e8f0;
+}
+
+html[data-theme="dark"] .bg-white {
+  background-color: #172235;
+}
+
+html[data-theme="dark"] :is(.bg-gray-50, .bg-slate-50) {
+  background-color: #0b1220;
+}
+
+html[data-theme="dark"] :is(.bg-gray-100, .bg-slate-100) {
+  background-color: #1e293b;
+}
+
+html[data-theme="dark"] :is(.bg-gray-200, .bg-slate-200) {
+  background-color: #334155;
+}
+
+html[data-theme="dark"] :is(.bg-emerald-50, .bg-green-50) {
+  background-color: #12302b;
+}
+
+html[data-theme="dark"] :is(.bg-emerald-100, .bg-green-100) {
+  background-color: #19372f;
+}
+
+html[data-theme="dark"] :is(.bg-sky-50, .bg-blue-50) {
+  background-color: #132c43;
+}
+
+html[data-theme="dark"] :is(.bg-sky-100, .bg-blue-100) {
+  background-color: #1b344c;
+}
+
+html[data-theme="dark"] :is(.bg-orange-50, .bg-amber-50) {
+  background-color: #352719;
+}
+
+html[data-theme="dark"] :is(.bg-orange-100, .bg-amber-100) {
+  background-color: #3b2b1a;
+}
+
+html[data-theme="dark"] :is(.bg-rose-50, .bg-red-50) {
+  background-color: #351e2a;
+}
+
+html[data-theme="dark"] :is(.bg-rose-100, .bg-red-100) {
+  background-color: #3b222c;
+}
+
+html[data-theme="dark"] :is(
+  .text-gray-900, .text-gray-800, .text-slate-950, .text-slate-900,
+  .text-slate-800
+) {
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] :is(.text-gray-700, .text-slate-700) {
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] :is(.text-gray-600, .text-slate-600) {
+  color: #b6c2d2;
+}
+
+html[data-theme="dark"] :is(.text-gray-500, .text-slate-500, .text-slate-400) {
+  color: #94a3b8;
+}
+
+html[data-theme="dark"] :is(
+  .border-gray-50, .border-gray-100, .border-gray-200, .border-gray-300,
+  .border-slate-100, .border-slate-200, .border-slate-300
+) {
+  border-color: #334155;
+}
+
+html[data-theme="dark"] :is(
+  .border-emerald-100, .border-green-100, .border-sky-100,
+  .border-orange-100, .border-rose-100
+) {
+  border-color: #334155;
+}
+
+html[data-theme="dark"] .hover\:bg-slate-50:hover,
+html[data-theme="dark"] .hover\:bg-gray-50:hover {
+  background-color: #1e293b;
+}
+
+html[data-theme="dark"] .hover\:bg-slate-100:hover,
+html[data-theme="dark"] .hover\:bg-gray-100:hover {
+  background-color: #334155;
+}
+
+html[data-theme="dark"] :is(input, select, textarea) {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] .recharts-cartesian-grid line {
+  stroke: #334155;
+}
+
+html[data-theme="dark"] .recharts-cartesian-axis-tick-value {
+  fill: #94a3b8;
+}
