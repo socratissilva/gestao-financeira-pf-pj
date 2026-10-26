@@ -334,7 +334,7 @@ export default function CombustivelUber() {
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="group rounded-lg p-6 transition-all duration-200 border-2 border-orange-500 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg hover:-translate-y-2 hover:shadow-2xl">
+        <div className="fuel-total-card group rounded-lg p-6 transition-all duration-200 border-2 border-orange-500 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg hover:-translate-y-2 hover:shadow-2xl">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-medium text-orange-700 font-semibold">Total Gasto</h3>
             <TrendingDown className="h-5 w-5 text-orange-600" />

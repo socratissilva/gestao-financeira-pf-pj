@@ -28,6 +28,77 @@ html[data-theme="dark"] .bg-white {
   background-color: #172235;
 }
 
+html[data-theme="dark"] .credit-card-row {
+  background-color: #172235;
+}
+
+html[data-theme="dark"] :is(.maintenance-stat-card, .maintenance-total-card) {
+  background-color: #351e2a;
+  background-image: none;
+  border-color: #7f1d1d;
+}
+
+html[data-theme="dark"] :is(.maintenance-stat-card, .maintenance-total-card) .text-red-600,
+html[data-theme="dark"] .maintenance-total-card .text-red-700 {
+  color: #fca5a5;
+}
+
+html[data-theme="dark"] .fuel-total-card {
+  background-color: #352719;
+  background-image: none;
+  border-color: #9a3412;
+}
+
+html[data-theme="dark"] .fuel-total-card .text-orange-700 {
+  color: #fdba74;
+}
+
+html[data-theme="dark"] .investment-top-assets-card {
+  background-color: #172235;
+  background-image: none;
+  border-color: #334155;
+}
+
+html[data-theme="dark"] .investment-top-assets-card .text-blue-700 {
+  color: #93c5fd;
+}
+
+html[data-theme="dark"] .price-ceiling-report tbody tr:nth-child(odd) {
+  background-color: #172235;
+}
+
+html[data-theme="dark"] .price-ceiling-report tbody tr:nth-child(even) {
+  background-color: #1e293b;
+}
+
+html[data-theme="dark"] .price-ceiling-report tbody tr:nth-child(odd) > td:not(.bg-emerald-50):not(.bg-red-50):not(.bg-amber-50) {
+  background-color: #172235;
+}
+
+html[data-theme="dark"] .price-ceiling-report tbody tr:nth-child(even) > td:not(.bg-emerald-50):not(.bg-red-50):not(.bg-amber-50) {
+  background-color: #1e293b;
+}
+
+html[data-theme="dark"] .price-ceiling-report tbody input {
+  background-color: #0b1220;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .earnings-total-card {
+  background-color: #12302b;
+  background-image: none;
+  border-color: #166534;
+}
+
+html[data-theme="dark"] .earnings-total-card .text-green-600 {
+  color: #86efac;
+}
+
+html[data-theme="dark"] :is(.bg-slate-50\/50, .bg-slate-50\/70, .bg-slate-50\/80) {
+  background-color: #172235;
+}
+
 html[data-theme="dark"] :is(.bg-gray-50, .bg-slate-50) {
   background-color: #0b1220;
 }
@@ -72,6 +143,47 @@ html[data-theme="dark"] :is(.bg-rose-100, .bg-red-100) {
   background-color: #3b222c;
 }
 
+html[data-theme="dark"] .bg-yellow-50 {
+  background-color: #352719;
+}
+
+html[data-theme="dark"] :is(.bg-yellow-100, [class*="bg-yellow-100/"]) {
+  background-color: #3b2b1a;
+}
+
+html[data-theme="dark"] .bg-violet-50 {
+  background-color: #211a36;
+}
+
+html[data-theme="dark"] .bg-purple-100 {
+  background-color: #302542;
+}
+
+html[data-theme="dark"] .bg-cyan-100 {
+  background-color: #123344;
+}
+
+html[data-theme="dark"] .text-yellow-900 {
+  color: #fde68a;
+}
+
+html[data-theme="dark"] .text-yellow-700 {
+  color: #fcd34d;
+}
+
+html[data-theme="dark"] .text-violet-700 {
+  color: #c4b5fd;
+}
+
+html[data-theme="dark"] .user-list-panel {
+  background-color: #172235;
+}
+
+html[data-theme="dark"] .user-list-card {
+  background-color: #0b1220;
+  border-color: #334155;
+}
+
 html[data-theme="dark"] :is(
   .text-gray-900, .text-gray-800, .text-slate-950, .text-slate-900,
   .text-slate-800
@@ -110,6 +222,11 @@ html[data-theme="dark"] .hover\:bg-gray-50:hover {
   background-color: #1e293b;
 }
 
+html[data-theme="dark"] .hover\:bg-slate-50\/70:hover,
+html[data-theme="dark"] .hover\:bg-slate-50\/80:hover {
+  background-color: #1e293b;
+}
+
 html[data-theme="dark"] .hover\:bg-slate-100:hover,
 html[data-theme="dark"] .hover\:bg-gray-100:hover {
   background-color: #334155;
@@ -117,6 +234,28 @@ html[data-theme="dark"] .hover\:bg-gray-100:hover {
 
 html[data-theme="dark"] :is(input, select, textarea) {
   color-scheme: dark;
+}
+
+html[data-theme="dark"] select {
+  background-color: #172235;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] select:focus {
+  border-color: #10b981;
+}
+
+html[data-theme="dark"] select option,
+html[data-theme="dark"] select optgroup {
+  background-color: #172235;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] select:disabled {
+  background-color: #1e293b;
+  color: #64748b;
+  cursor: not-allowed;
 }
 
 html[data-theme="dark"] .recharts-cartesian-grid line {

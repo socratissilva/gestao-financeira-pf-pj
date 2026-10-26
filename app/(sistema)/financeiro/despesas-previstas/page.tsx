@@ -937,7 +937,7 @@ export default function DespesasPage() {
 
                                                 return (
                                                     <Fragment key={`${mesAno}-${grupo.key}`}>
-                                                        <tr className={`border-t ${todosPagos ? "bg-green-50/80" : "bg-amber-50/70"}`}>
+                                                        <tr className={`credit-card-row border-t ${todosPagos ? "bg-green-50/80" : "bg-amber-50/70"}`}>
                                                             <td className="px-4 py-3 text-slate-700">
                                                                 {(() => {
                                                                     const d = new Date(mesAno.split("-")[0] + "-" + mesAno.split("-")[1] + "-01");

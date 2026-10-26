@@ -597,7 +597,7 @@ export default function InvestimentosOverviewPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-50/70 p-5 shadow-sm">
+          <section className="investment-top-assets-card rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-50/70 p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-bold text-slate-900">Maiores posições por valor</h2>

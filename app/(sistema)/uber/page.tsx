@@ -402,7 +402,7 @@ export default function UberOverview() {
                     : "0%",
             icon: Wrench,
             color:
-                "bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-500 shadow-lg",
+                "maintenance-stat-card bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-500 shadow-lg",
             text: "text-red-600",
         },
     ];

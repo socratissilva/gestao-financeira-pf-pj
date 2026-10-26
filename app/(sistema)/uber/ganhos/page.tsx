@@ -487,7 +487,7 @@ export default function GanhosUber() {
                                                 card.title
                                             }
                                             className={`group rounded-2xl p-6 transition-all duration-200 ${isHighlighted
-                                                ? "border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg hover:-translate-y-2 hover:shadow-2xl"
+                                                ? "earnings-total-card border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg hover:-translate-y-2 hover:shadow-2xl"
                                                 : "border border-slate-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg"
                                                 }`}
                                         >

@@ -113,9 +113,9 @@ export default function UsuariosPage() {
       </div>
 
       <div
+        className="user-list-panel bg-white"
         style={{
           padding: '2rem',
-          backgroundColor: '#fff',
           borderRadius: '8px',
           boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
           minHeight: '60vh',
@@ -166,9 +166,8 @@ export default function UsuariosPage() {
             {usuariosFiltrados.map((usuario) => (
               <Link key={usuario._id} href={`/usuarios/${usuario._id}`}>
                 <div
+                  className="user-list-card border border-slate-200 bg-slate-50"
                   style={{
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
                     borderRadius: '8px',
                     padding: '1.5rem',
                     textAlign: 'center',

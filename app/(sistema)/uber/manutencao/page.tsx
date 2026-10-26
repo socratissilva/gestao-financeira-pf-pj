@@ -668,7 +668,7 @@ function ManutencaoUberPageContent() {
           {/* CARDS */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             {/* TOTAL GASTO */}
-            <div className="group rounded-lg p-6 transition-all duration-200 border-2 border-red-500 bg-gradient-to-br from-red-50 to-rose-50 shadow-lg hover:-translate-y-2 hover:shadow-2xl">
+            <div className="maintenance-total-card group rounded-lg p-6 transition-all duration-200 border-2 border-red-500 bg-gradient-to-br from-red-50 to-rose-50 shadow-lg hover:-translate-y-2 hover:shadow-2xl">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-medium text-red-700 font-semibold">
                   Total Gasto
