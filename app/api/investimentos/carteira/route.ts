@@ -171,7 +171,7 @@ export async function GET() {
     await SnapshotPatrimonioInvestimento.updateOne(
       { userId, dateKey },
       {
-        $setOnInsert: {
+        $set: {
           userId,
           dateKey,
           valuationComplete,

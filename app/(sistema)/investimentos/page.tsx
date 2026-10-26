@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import { calcularPosicoes, type OperacaoCarteira } from "@/lib/investimentos/calculoCarteira";
+import { subscribeToPortfolioUpdates } from "@/lib/investimentos/portfolioEvents";
 import {
   AlertTriangle,
   ArrowRight,
@@ -218,7 +219,11 @@ export default function InvestimentosOverviewPage() {
   useEffect(() => {
     void loadDashboard();
     const interval = window.setInterval(() => void loadDashboard(true), 60_000);
-    return () => window.clearInterval(interval);
+    const unsubscribe = subscribeToPortfolioUpdates(() => void loadDashboard(true));
+    return () => {
+      window.clearInterval(interval);
+      unsubscribe();
+    };
   }, [loadDashboard]);
 
   const unquoted = data?.posicoes.filter((position) => position.valorAtualBRL === null) ?? [];

@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader/PageHeader";
+import { notifyPortfolioUpdated } from "@/lib/investimentos/portfolioEvents";
 import {
   AlertTriangle,
   Briefcase,
@@ -263,6 +264,7 @@ export default function CarteiraInvestimentosPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Não foi possível registrar a operação.");
+      notifyPortfolioUpdated();
       setForm((current) => ({
         ...current,
         ticker: "",
@@ -290,6 +292,7 @@ export default function CarteiraInvestimentosPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Não foi possível excluir a operação.");
+      notifyPortfolioUpdated();
       await loadPortfolio(true);
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Não foi possível excluir a operação.");
@@ -311,6 +314,7 @@ export default function CarteiraInvestimentosPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Não foi possível atualizar o preço.");
+      notifyPortfolioUpdated();
       await loadPortfolio(true);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Não foi possível atualizar o preço.");
