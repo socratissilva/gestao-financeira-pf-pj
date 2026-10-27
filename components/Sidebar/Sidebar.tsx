@@ -126,10 +126,18 @@ const ITEM_H = 44;
 function getInitials(n: string) {
   return n.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 }
+
+function isNavItemActive(pathname: string, item: NavItem) {
+  const itemPath = item.href.split("?")[0];
+  if (pathname === itemPath) return true;
+  if (itemPath === "/uber" || itemPath === "/investimentos") return false;
+  return pathname.startsWith(itemPath + "/");
+}
+
 function getActiveGroups(pathname: string): Set<string> {
   const s = new Set<string>();
   for (const e of NAV) {
-    if (isGroup(e) && e.children.some((c) => pathname === c.href || pathname.startsWith(c.href + "/")))
+    if (isGroup(e) && e.children.some((child) => isNavItemActive(pathname, child)))
       s.add(e.group);
   }
   return s;
@@ -238,7 +246,7 @@ export default function Sidebar() {
   // ── Sub-componentes ───────────────────────────────────────────────────────
 
   function CollapsedItem({ item }: { item: NavItem }) {
-    const active = pathname === item.href || pathname.startsWith(item.href + "/");
+    const active = isNavItemActive(pathname, item);
     return (
       <Link
         href={item.href}
@@ -252,7 +260,7 @@ export default function Sidebar() {
   }
 
   function ExpandedItem({ item, indent = false }: { item: NavItem; indent?: boolean }) {
-    const active = pathname === item.href || pathname.startsWith(item.href + "/");
+    const active = isNavItemActive(pathname, item);
     return (
       <Link
         href={item.href}
@@ -268,9 +276,7 @@ export default function Sidebar() {
 
   function ExpandedGroup({ entry }: { entry: NavGroup }) {
     const isOpen = openGroups.has(entry.group);
-    const hasActive = entry.children.some(
-      (c) => pathname === c.href || pathname.startsWith(c.href + "/")
-    );
+    const hasActive = entry.children.some((child) => isNavItemActive(pathname, child));
     return (
       <div className="mt-1">
         <button
@@ -407,7 +413,7 @@ export default function Sidebar() {
           className="w-48 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden z-[9999] py-1"
         >
           {overflowItems.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            const active = isNavItemActive(pathname, item);
             return (
               <Link
                 key={item.href}
