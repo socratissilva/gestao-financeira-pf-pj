@@ -8,6 +8,7 @@ import { ReceitaDespesaChart } from "@/components/Dashboard/ReceitaDespesaChart"
 import { DashboardPieChart } from "@/components/Dashboard/DashboardPieChart";
 import { CategoriasList } from "@/components/Dashboard/CategoriasList";
 import { SaldoChart } from "@/components/Dashboard/SaldoChart";
+import { CATEGORIAS_LABEL } from "@/constants/categorias-receitas";
 import { formatCurrency } from "@/utils/formatCurrency";
 import toast from "react-hot-toast";
 import {
@@ -596,6 +597,7 @@ export default function VisaoGeralFinanceiro() {
           <DashboardPieChart
             data={graficos.receitasPorCategoria}
             title="Distribuição de Receitas por Categoria"
+            categoryLabels={CATEGORIAS_LABEL}
           />
         </div>
 
@@ -603,6 +605,7 @@ export default function VisaoGeralFinanceiro() {
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CategoriasList
             dados={graficos.topCategorias}
+            opcoesFiltro={graficos.gastosPorCategoria}
             titulo="Top 5 Categorias de Despesa"
             limite={5}
           />

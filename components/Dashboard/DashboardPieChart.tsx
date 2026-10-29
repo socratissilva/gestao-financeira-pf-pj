@@ -8,6 +8,7 @@ interface PieChartProps {
   }>;
   title: string;
   colors?: string[];
+  categoryLabels?: Record<string, string>;
 }
 
 const CORES_PADRAO = [
@@ -36,10 +37,11 @@ export function DashboardPieChart({
   data,
   title,
   colors = CORES_PADRAO,
+  categoryLabels = CATEGORIAS_DESPESA_LABEL,
 }: PieChartProps) {
   const dadosFormatados = data.map((item) => ({
     ...item,
-    name: CATEGORIAS_DESPESA_LABEL[item.name] ?? item.name,
+    name: categoryLabels[item.name] ?? item.name,
   }));
 
   const CustomTooltip = ({ active, payload }: any) => {
