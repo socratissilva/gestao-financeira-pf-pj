@@ -357,15 +357,24 @@ export async function GET(req: Request) {
     // =========================
 
     const gastosPorCategoria: Record<string, number> = {};
+    const gastosPorCategoriaMes: Record<string, Record<string, number>> = {};
     const receitasPorCategoria: Record<string, number> = {};
     const metodosPagamento: Record<string, number> = {};
 
     despesas_previstas.forEach((d) => {
       const valor = getValorDespesa(d);
+      const mesAno = getMesAnoFormatted(d.mesAno);
 
       gastosPorCategoria[d.categoria] =
         (gastosPorCategoria[d.categoria] || 0) +
         valor;
+
+      if (!gastosPorCategoriaMes[d.categoria]) {
+        gastosPorCategoriaMes[d.categoria] = {};
+      }
+
+      gastosPorCategoriaMes[d.categoria][mesAno] =
+        (gastosPorCategoriaMes[d.categoria][mesAno] || 0) + valor;
 
       metodosPagamento[d.formaPagamento] =
         (metodosPagamento[d.formaPagamento] || 0) +
@@ -393,6 +402,16 @@ export async function GET(req: Request) {
     const topCategorias = [...dadosCategoria]
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
+
+    const dadosDespesasPorCategoriaMes = Object.entries(
+      gastosPorCategoriaMes
+    ).flatMap(([categoria, valoresPorMes]) =>
+      Object.entries(valoresPorMes).map(([mes, valor]) => ({
+        categoria,
+        mes,
+        valor,
+      }))
+    );
 
     return NextResponse.json(
       {
@@ -426,6 +445,7 @@ export async function GET(req: Request) {
             dadosReceitasCategoria,
           metodosPagamento: dadosMetodos,
           topCategorias,
+          despesasPorCategoriaMes: dadosDespesasPorCategoriaMes,
         },
       },
       { status: 200 }

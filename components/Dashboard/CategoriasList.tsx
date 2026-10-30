@@ -12,6 +12,8 @@ interface CategoriasListaProps {
   }>;
   titulo: string;
   limite?: number;
+  categoriaSelecionada?: string;
+  onCategoriaSelecionadaChange?: (categoria: string) => void;
 }
 
 export function CategoriasList({
@@ -19,15 +21,18 @@ export function CategoriasList({
   opcoesFiltro,
   titulo,
   limite = 5,
+  categoriaSelecionada,
+  onCategoriaSelecionadaChange,
 }: CategoriasListaProps) {
-  const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
+  const [categoriaLocal, setCategoriaLocal] = useState("");
+  const categoriaAtual = categoriaSelecionada ?? categoriaLocal;
   const categoriasDisponiveis = opcoesFiltro ?? dados;
   const filtroAtivo = categoriasDisponiveis.some(
-    (item) => item.name === categoriaSelecionada
+    (item) => item.name === categoriaAtual
   );
   const dadosOrdenados = filtroAtivo
     ? categoriasDisponiveis.filter(
-        (item) => item.name === categoriaSelecionada
+        (item) => item.name === categoriaAtual
       )
     : dados.slice(0, limite);
   const total = categoriasDisponiveis.reduce(
@@ -44,8 +49,12 @@ export function CategoriasList({
             <span className="shrink-0">Categoria:</span>
             <select
               aria-label="Selecionar categoria de despesa"
-              value={filtroAtivo ? categoriaSelecionada : ""}
-              onChange={(event) => setCategoriaSelecionada(event.target.value)}
+              value={filtroAtivo ? categoriaAtual : ""}
+              onChange={(event) => {
+                const categoria = event.target.value;
+                setCategoriaLocal(categoria);
+                onCategoriaSelecionadaChange?.(categoria);
+              }}
               className="min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
             >
               <option value="">Top {limite} categorias</option>

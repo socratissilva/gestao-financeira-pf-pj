@@ -6,6 +6,7 @@ import PageHeader from "@/components/PageHeader/PageHeader";
 import { KPICard } from "@/components/Dashboard/KPICard";
 import { ReceitaDespesaChart } from "@/components/Dashboard/ReceitaDespesaChart";
 import { DashboardPieChart } from "@/components/Dashboard/DashboardPieChart";
+import { DashboardCategoryEvolutionChart } from "@/components/Dashboard/DashboardCategoryEvolutionChart";
 import { CategoriasList } from "@/components/Dashboard/CategoriasList";
 import { SaldoChart } from "@/components/Dashboard/SaldoChart";
 import { CATEGORIAS_LABEL } from "@/constants/categorias-receitas";
@@ -65,13 +66,48 @@ interface DashboardData {
       name: string;
       value: number;
     }>;
+
+    despesasPorCategoriaMes: Array<{
+      categoria: string;
+      mes: string;
+      valor: number;
+    }>;
   };
+}
+
+function listarMesesDoPeriodo(inicio: string, fim: string): string[] {
+  const formatoMesValido = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+  if (
+    !formatoMesValido.test(inicio) ||
+    !formatoMesValido.test(fim) ||
+    inicio > fim
+  ) {
+    return [];
+  }
+
+  const meses: string[] = [];
+  const [anoFim, mesFim] = fim.split("-").map(Number);
+  let [ano, mes] = inicio.split("-").map(Number);
+
+  while (ano < anoFim || (ano === anoFim && mes <= mesFim)) {
+    meses.push(`${ano}-${String(mes).padStart(2, "0")}`);
+    mes += 1;
+    if (mes > 12) {
+      ano += 1;
+      mes = 1;
+    }
+  }
+
+  return meses;
 }
 
 export default function VisaoGeralFinanceiro() {
   const { data: session } = useSession();
   const [dados, setDados] = useState<DashboardData | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [categoriaDespesaSelecionada, setCategoriaDespesaSelecionada] =
+    useState("");
 
   const hoje = new Date();
 
@@ -297,6 +333,33 @@ export default function VisaoGeralFinanceiro() {
   const resultado =
     resumo.totalReceitaPrevista - resumo.totalDespesaPrevista;
 
+  const mesesDoPeriodo =
+    filterType === "year"
+      ? Array.from(
+          { length: 12 },
+          (_, index) => `${selectedYear}-${String(index + 1).padStart(2, "0")}`
+        )
+      : filterType === "day"
+        ? listarMesesDoPeriodo(startMonth, endMonth)
+        : [];
+  const valoresDespesaPorMes = new Map(
+    graficos.despesasPorCategoriaMes
+      .filter(
+        (item) => item.categoria === categoriaDespesaSelecionada
+      )
+      .map((item) => [item.mes, item.valor])
+  );
+  const dadosEvolucaoDespesa = mesesDoPeriodo.map((mes) => ({
+    mes,
+    valor: valoresDespesaPorMes.get(mes) ?? 0,
+  }));
+  const categoriaDespesaDisponivel = graficos.gastosPorCategoria.some(
+    (item) => item.name === categoriaDespesaSelecionada
+  );
+  const exibirEvolucaoDespesa =
+    categoriaDespesaDisponivel &&
+    (filterType === "year" ||
+      (filterType === "day" && mesesDoPeriodo.length > 1));
 
   function getValorReceitaEfetiva(receita: {
     valor: number;
@@ -608,12 +671,22 @@ export default function VisaoGeralFinanceiro() {
             opcoesFiltro={graficos.gastosPorCategoria}
             titulo="Top 5 Categorias de Despesa"
             limite={5}
+            categoriaSelecionada={categoriaDespesaSelecionada}
+            onCategoriaSelecionadaChange={setCategoriaDespesaSelecionada}
           />
           <CategoriasList
             dados={graficos.metodosPagamento}
             titulo="Gastos por Método de Pagamento"
             limite={5}
           />
+          {exibirEvolucaoDespesa && (
+            <div className="lg:col-span-2">
+              <DashboardCategoryEvolutionChart
+                categoria={categoriaDespesaSelecionada}
+                data={dadosEvolucaoDespesa}
+              />
+            </div>
+          )}
         </div>
 
 
